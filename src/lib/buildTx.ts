@@ -8,6 +8,7 @@ import {
   type WcTransactionObject,
 } from 'cashscript';
 import { binToHex, cashAddressToLockingBytecode } from '@bitauth/libauth';
+import { sourceOutputToRelay } from '@wizardconnect/core/hdwalletv1-serialize';
 import type { BuyerUtxo, PlannedOutput, TxPlan } from './plan';
 
 export interface BuildOptions {
@@ -49,6 +50,20 @@ export function buildWcTransaction(plan: TxPlan, opts: BuildOptions): BuiltTx {
   if (opts.broadcast !== undefined) wcOptions.broadcast = opts.broadcast;
   const wc = builder.generateWcTransactionObject(wcOptions);
   return { wc, hex: builder.build(), sourceOutputs: wc.sourceOutputs, fee: builder.calculateTransactionFee().feeSats };
+}
+
+/**
+ * WizardConnect's relay client sends messages with plain JSON.stringify (no bigint / Uint8Array support),
+ * so the sign request must be pre-serialised: tx as hex, source outputs via the library's own helper.
+ * Pass the result as `transaction` in DappConnectionManager.signTransaction({ transaction, inputPaths }).
+ */
+export function toRelaySignRequest(built: BuiltTx) {
+  return {
+    transaction: built.hex,
+    sourceOutputs: built.sourceOutputs.map((so) => sourceOutputToRelay(so)),
+    ...(built.wc.broadcast !== undefined && { broadcast: built.wc.broadcast }),
+    ...(built.wc.userPrompt !== undefined && { userPrompt: built.wc.userPrompt }),
+  };
 }
 
 function toCashScriptOutput(o: PlannedOutput): Output {

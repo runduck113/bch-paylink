@@ -10,7 +10,7 @@ import {
   secp256k1,
   verifyTransactionTokens,
 } from '@bitauth/libauth';
-import { buildWcTransaction } from './buildTx';
+import { buildWcTransaction, toRelaySignRequest } from './buildTx';
 import { planPayment, planPrep, type BuyerUtxo } from './plan';
 import type { Invoice } from './invoice';
 import { addr } from './testAddresses';
@@ -105,5 +105,17 @@ describe('mainnet', () => {
     const provider = { network: 'mainnet' } as unknown as NetworkProvider;
     const { wc } = buildWcTransaction(p, { provider, buyerAddress: mainBuyer });
     expect(verifyTransactionTokens(wc.transaction, wc.sourceOutputs)).toBe(true);
+  });
+});
+
+describe('toRelaySignRequest (WizardConnect relay sends plain JSON.stringify)', () => {
+  it('produces a JSON-safe request: tx as hex, bigint/bytes encoded', () => {
+    const built = buildWcTransaction(plan(), { provider: new MockNetworkProvider(), buyerAddress: buyer, userPrompt: 'Pay', broadcast: true });
+    const req = toRelaySignRequest(built);
+    expect(() => JSON.stringify(req)).not.toThrow();
+    expect(req.transaction).toBe(built.hex);
+    expect(req.sourceOutputs[0].valueSatoshis).toBe(`<bigint: ${built.sourceOutputs[0].valueSatoshis}n>`);
+    expect(req.userPrompt).toBe('Pay');
+    expect(req.broadcast).toBe(true);
   });
 });
