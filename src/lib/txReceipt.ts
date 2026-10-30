@@ -77,12 +77,13 @@ export function checkTxAgainstInvoice(tx: ParsedTx, invoice: Invoice): InvoiceCh
  * attempt cannot double-pay). Anything else (timeouts, dropped sockets) leaves the outcome unknown.
  */
 export function isDefiniteRejection(message: string): boolean {
-  return /bad-txns|mandatory-script-verify|non-mandatory-script-verify|missing-?inputs|missingorspent|mempool-conflict|txn-mempool-conflict|insufficient fee|min relay fee|dust|non-final|scriptsig|too-long-mempool-chain|rejected by network rules|bad-tx|-26|-25/i.test(message) && !isAlreadyKnownError(message);
+  if (isAlreadyKnownError(message)) return false;
+  return /\bcode[": ]*-?(25|26)\b|bad-txns-|mandatory-script-verify-flag|txn-mempool-conflict|missing-?inputs|missingorspent|min relay fee|insufficient fee|\bdust\b|non-final|missing or already spent|conflicts with an unconfirmed transaction|not yet final|sequence lock not satisfied/i.test(message);
 }
 
 /** Electrum rejects a re-broadcast of a tx it already has; for us that is success. */
 export function isAlreadyKnownError(message: string): boolean {
-  return /already known|already have transaction|txn-already|already in (the )?mempool|transaction already in block chain/i.test(message);
+  return /already known|already have transaction|txn-already|already in (the )?mempool|transaction already in block chain|already been submitted/i.test(message);
 }
 
 /**

@@ -152,7 +152,7 @@ export function ReceiptPaper({
         {qr && <div className="paper-qr">{qr}</div>}
         <p className="paper-foot">Paid from your own wallet. The same transaction gives you an NFT receipt.</p>
         {stamp && (
-          <div className={`rubber-stamp ${stamp === 'paid' ? 'stamp-paid' : 'stamp-bad'}`} role="status">
+          <div className={`rubber-stamp ${stamp === 'paid' ? 'stamp-paid' : 'stamp-bad'}`}>
             {stamp === 'paid' ? 'Paid' : 'Not this invoice'}
           </div>
         )}

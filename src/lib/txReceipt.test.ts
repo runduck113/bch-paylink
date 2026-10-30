@@ -72,7 +72,7 @@ describe('checkTxAgainstInvoice', () => {
 });
 
 describe('isAlreadyKnownError', () => {
-  it.each(['txn-already-known', 'Transaction already in block chain', 'the transaction was rejected by network rules.\n\ntxn-already-in-mempool'])(
+  it.each(['txn-already-known', 'Transaction already in block chain', 'Transaction has already been submitted: txn-already-known', 'the transaction was rejected by network rules.\n\ntxn-already-in-mempool'])(
     'treats %s as already broadcast',
     (m) => expect(isAlreadyKnownError(m)).toBe(true),
   );
@@ -106,11 +106,21 @@ describe('sameTxSkeleton (wallet may only add signatures)', () => {
 });
 
 describe('isDefiniteRejection (safe to re-plan only when the node refused the tx)', () => {
-  it.each(['bad-txns-inputs-missingorspent', 'mandatory-script-verify-flag-failed (Signature must be zero)', 'txn-mempool-conflict', 'min relay fee not met', 'dust'])(
+  it.each([
+    'bad-txns-inputs-missingorspent',
+    'mandatory-script-verify-flag-failed (Signature must be zero)',
+    'txn-mempool-conflict',
+    'min relay fee not met',
+    'dust',
+    '{"code": -26, "message": "the transaction was rejected by network rules"}',
+    // cashscript wraps Electrum errors in its own NetworkProviderError messages:
+    'Transaction inputs are missing or already spent: bad-txns-inputs-missingorspent',
+    'Transaction conflicts with an unconfirmed transaction in the mempool: txn-mempool-conflict',
+  ])(
     '%s is a rejection',
     (m) => expect(isDefiniteRejection(m)).toBe(true),
   );
-  it.each(['Request timed out', 'socket hang up', 'WebSocket closed', 'txn-already-known'])('%s is not', (m) => {
+  it.each(['Request timed out', 'socket hang up', 'WebSocket closed', 'txn-already-known', 'error -2600 in module dustbin', 'stardust relay offline'])('%s is not', (m) => {
     expect(isDefiniteRejection(m)).toBe(false);
   });
 });

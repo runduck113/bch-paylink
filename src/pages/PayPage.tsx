@@ -1,16 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlphanumericQRCode, useWizardConnect } from '@wizardconnect/react';
-import { DAPP_NAME, EXPLORER_TX_URL, NETWORK } from '../config';
+import { DAPP_NAME, EXPLORER_TX_URL, NETWORK, WALLET_ADDRESS_SCAN_COUNT } from '../config';
 import { decodeInvoice, validateInvoice, type Invoice } from '../lib/invoice';
 import { invoiceCommitment } from '../lib/receipt';
 import { formatSats, formatSatsAsBch } from '../lib/amount';
 import { receiptHash } from '../lib/routes';
 import { Address, CheckIcon, ErrorBox, ReceiptPaper } from '../components/ui';
 import { loadWallet, nextStep, signAndBroadcast, type Next, type WalletSnapshot } from '../wallet/payment';
-import { broadcast, BroadcastUnknownError } from '../wallet/electrum';
+import { broadcast, BroadcastRejectedError, BroadcastUnknownError } from '../wallet/electrum';
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const explorer = (txid: string) => EXPLORER_TX_URL[NETWORK] + txid;
+
+/** Remember payments made from this browser, per invoice, to warn before paying the same invoice twice. */
+const paidKey = (invoice: Invoice) => `bch-paylink:paid:${invoiceCommitment(invoice)}`;
+function readPaid(invoice: Invoice): string | null {
+  try {
+    const v = localStorage.getItem(paidKey(invoice));
+    return v && /^[0-9a-f]{64}$/.test(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+function rememberPaid(invoice: Invoice, txid: string) {
+  try {
+    localStorage.setItem(paidKey(invoice), txid);
+  } catch {
+    /* private mode: the warning is a convenience only */
+  }
+}
 
 type Phase =
   | { k: 'idle' }
@@ -51,7 +69,12 @@ export default function PayPage({ encoded }: { encoded: string }) {
 
 function PayInvoice({ invoice, encoded }: { invoice: Invoice; encoded: string }) {
   const problems = validateInvoice(invoice, NETWORK);
-  const [paid, setPaid] = useState<{ txid: string; category: string } | null>(null);
+  const [paid, setPaidState] = useState<{ txid: string; category: string } | null>(null);
+  const [earlier, setEarlier] = useState(() => readPaid(invoice));
+  const setPaid = (p: { txid: string; category: string }) => {
+    rememberPaid(invoice, p.txid);
+    setPaidState(p);
+  };
   return (
     <main className="sheet">
       <div className="sheet-head">
@@ -73,6 +96,17 @@ function PayInvoice({ invoice, encoded }: { invoice: Invoice; encoded: string })
           </ErrorBox>
         ) : paid ? (
           <Paid txid={paid.txid} encoded={encoded} />
+        ) : earlier ? (
+          <div className="step-body">
+            <ErrorBox title="You may have paid this invoice already">
+              <p>This browser sent (or tried to send) a payment for it earlier. Check that transaction before paying again.</p>
+              <p className="mono-small">{earlier}</p>
+            </ErrorBox>
+            <div className="row">
+              <a className="btn btn-primary" href={receiptHash(earlier, encoded)}>Check that transaction</a>
+              <button type="button" className="text-button" onClick={() => setEarlier(null)}>Pay it again anyway</button>
+            </div>
+          </div>
         ) : (
           <PayFlow invoice={invoice} onPaid={setPaid} />
         )}
@@ -141,7 +175,11 @@ function PayFlow({ invoice, onPaid }: { invoice: Invoice; onPaid: (p: { txid: st
       settle(what, txid, category);
     } catch (e) {
       if (e instanceof BroadcastUnknownError) {
+        // It may have gone out: remember it so a reload still warns before paying again.
+        if (what === 'pay') rememberPaid(invoice, e.txid);
         setPhase({ k: 'unknown', what, txid: e.txid, hex: e.hex, category, message: e.message });
+      } else if (e instanceof BroadcastRejectedError) {
+        setPhase({ k: 'error', message: e.message });
       } else if (ctrl.signal.aborted) {
         setPhase({ k: 'error', message: 'The request was cancelled. This page sent nothing.' });
       } else {
@@ -159,7 +197,9 @@ function PayFlow({ invoice, onPaid }: { invoice: Invoice; onPaid: (p: { txid: st
       const txid = await broadcast(p.hex);
       settle(p.what, txid, p.category);
     } catch (e) {
-      setPhase({ ...p, message: errorText(e) });
+      // A clear refusal means it was never accepted: starting over is safe. Otherwise stay in "unknown".
+      if (e instanceof BroadcastRejectedError) setPhase({ k: 'error', message: e.message });
+      else setPhase({ ...p, message: errorText(e) });
     }
   };
 
@@ -268,6 +308,7 @@ function PayStep(props: {
           <div className="step-body">
             <ErrorBox title="This wallet can’t pay yet">
               <p>{next.reason}</p>
+              <p>Only the first {WALLET_ADDRESS_SCAN_COUNT} receive and change addresses of the wallet are checked.</p>
             </ErrorBox>
             <button type="button" className="btn btn-quiet" onClick={onRefresh}>Check again</button>
           </div>

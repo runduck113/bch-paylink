@@ -54,8 +54,9 @@ export async function broadcast(hex: string): Promise<string> {
   } catch (e) {
     const message = messageOf(e);
     if (isAlreadyKnownError(message)) return txid;
-    if (isDefiniteRejection(message)) throw new BroadcastRejectedError(message);
+    // "Inputs already spent" can also mean this very tx is already in (e.g. the wallet broadcast it too).
     if (await isKnown(txid)) return txid;
+    if (isDefiniteRejection(message)) throw new BroadcastRejectedError(message);
     throw new BroadcastUnknownError(txid, hex, message);
   }
 }
