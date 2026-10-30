@@ -16,6 +16,8 @@ export interface Invoice {
 /** Smallest standard P2PKH output (sats). */
 export const MIN_INVOICE_SATS = 546;
 export const MAX_MEMO_CHARS = 140;
+/** Generous cap on the encoded link part (a max-size invoice is well under 1 KB). */
+export const MAX_LINK_CHARS = 4096;
 
 const PAYABLE_TYPES = new Set(['p2pkh', 'p2sh', 'p2pkhWithTokens', 'p2shWithTokens']);
 
@@ -25,6 +27,7 @@ export function encodeInvoice(invoice: Invoice): string {
 }
 
 export function decodeInvoice(text: string): Invoice {
+  if (text.length > MAX_LINK_CHARS) throw new Error('Invalid invoice link: too long');
   if (!/^[A-Za-z0-9_-]*$/.test(text)) throw new Error('Invalid invoice link: not base64url');
   const b64 = text.replace(/-/g, '+').replace(/_/g, '/');
   let raw: unknown;

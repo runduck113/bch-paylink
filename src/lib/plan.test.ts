@@ -135,3 +135,10 @@ describe('planPrep (self-send to create a vout-0 UTXO)', () => {
     );
   });
 });
+
+describe('indexer quirks', () => {
+  it('treats token: null as a plain BCH UTXO', () => {
+    const u = { ...utxo('a', 0, 10_000), token: null };
+    expect(plan([u]).inputs).toHaveLength(1);
+  });
+});

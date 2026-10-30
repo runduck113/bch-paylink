@@ -82,7 +82,7 @@ export function planPayment({ buyerUtxos, invoice, buyerAddress, feeRate, networ
   checkFeeRate(feeRate);
   const buyer = parseBuyer(buyerAddress, network);
 
-  const spendable = buyerUtxos.filter((u) => u.token === undefined);
+  const spendable = buyerUtxos.filter((u) => u.token == null);
   const genesis = spendable.filter((u) => u.vout === 0).sort(bySatsDesc)[0];
   if (spendable.length > 0 && !genesis) {
     throw new PlanError(
@@ -96,7 +96,7 @@ export function planPayment({ buyerUtxos, invoice, buyerAddress, feeRate, networ
   // Category placeholder only matters for size/dust (always 32 bytes); real value set below when a genesis exists.
   const category = genesis ? genesis.txid : '00'.repeat(32);
   const commitment = invoiceCommitment(invoice);
-  const payee: PlannedOutput = { role: 'payee', to: invoice.payee, sats: BigInt(invoice.sats) };
+  const payee: PlannedOutput = { role: 'payee', to: invoice.payee.toLowerCase(), sats: BigInt(invoice.sats) };
   const receiptBase: PlannedOutput = {
     role: 'receipt',
     to: buyer.tokenAddress,
@@ -113,7 +113,7 @@ export function planPayment({ buyerUtxos, invoice, buyerAddress, feeRate, networ
 export function planPrep({ buyerUtxos, buyerAddress, feeRate, network }: Common): TxPlan {
   checkFeeRate(feeRate);
   const buyer = parseBuyer(buyerAddress, network);
-  const inputs = buyerUtxos.filter((u) => u.token === undefined);
+  const inputs = buyerUtxos.filter((u) => u.token == null);
   const total = sum(inputs);
   const out: PlannedOutput = { role: 'prep', to: buyer.address, sats: 0n };
   const size = txSize(Math.max(inputs.length, 1), [out]);

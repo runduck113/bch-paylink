@@ -96,3 +96,9 @@ describe('validateInvoice', () => {
 function encodeRaw(text: string): string {
   return Buffer.from(text, 'utf8').toString('base64url');
 }
+
+describe('decodeInvoice size cap', () => {
+  it('rejects absurdly long links', () => {
+    expect(() => decodeInvoice('A'.repeat(5000))).toThrow(/too long/);
+  });
+});
