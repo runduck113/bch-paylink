@@ -21,3 +21,7 @@ PUSD payments (stretch), escrow, accounts, storing keys, any custody of funds.
 - Pure logic (invoice encode/decode/validate, commitment hash, tx output planning, fee estimate) in src/lib with node --test / vitest tests; mock network for tx building.
 - Never hold private keys of users. No secrets in repo.
 - Mainnet by default, testnet/chipnet toggle via env for development.
+
+## Project addresses (owner's Paytaca wallet, public)
+- BCH: bitcoincash:qz8l22vpcx037klsqha3jzqq8lsnx4jkry9ru9e4pd
+- CashTokens (banner): bitcoincash:zz8l22vpcx037klsqha3jzqq8lsnx4jkryzf0mhn77
