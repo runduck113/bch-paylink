@@ -76,3 +76,29 @@ export function checkTxAgainstInvoice(tx: ParsedTx, invoice: Invoice): InvoiceCh
 export function isAlreadyKnownError(message: string): boolean {
   return /already known|already have transaction|txn-already|already in (the )?mempool|transaction already in block chain/i.test(message);
 }
+
+/**
+ * True when `signedHex` spends the same outpoints and creates the same outputs (script, value, token) as
+ * `unsignedHex`: a wallet may only add signatures. Used before broadcasting what the wallet returned.
+ */
+export function sameTxSkeleton(unsignedHex: string, signedHex: string): boolean {
+  if (!isHex(unsignedHex) || !isHex(signedHex)) return false;
+  const a = decodeTransaction(hexToBin(unsignedHex));
+  const b = decodeTransaction(hexToBin(signedHex));
+  if (typeof a === 'string' || typeof b === 'string') return false;
+  type Tx = Exclude<typeof a, string>;
+  const shape = (t: Tx) =>
+    JSON.stringify([
+      t.version,
+      t.locktime,
+      t.inputs.map((i) => [binToHex(i.outpointTransactionHash), i.outpointIndex, i.sequenceNumber]),
+      t.outputs.map((o) => [
+        binToHex(o.lockingBytecode),
+        String(o.valueSatoshis),
+        o.token
+          ? [binToHex(o.token.category), String(o.token.amount), o.token.nft ? [o.token.nft.capability, binToHex(o.token.nft.commitment)] : null]
+          : null,
+      ]),
+    ]);
+  return shape(a) === shape(b);
+}

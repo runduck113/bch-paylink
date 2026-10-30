@@ -5,7 +5,7 @@ import { buildWcTransaction } from './buildTx';
 import { planPayment } from './plan';
 import type { Invoice } from './invoice';
 import { addr } from './testAddresses';
-import { checkTxAgainstInvoice, isAlreadyKnownError, parseTx, txidOf } from './txReceipt';
+import { checkTxAgainstInvoice, isAlreadyKnownError, parseTx, sameTxSkeleton, txidOf } from './txReceipt';
 
 const priv = new Uint8Array(32).fill(7);
 const pub = secp256k1.derivePublicKeyCompressed(priv) as Uint8Array;
@@ -79,5 +79,28 @@ describe('isAlreadyKnownError', () => {
   it('does not swallow real errors', () => {
     expect(isAlreadyKnownError('mandatory-script-verify-flag-failed')).toBe(false);
     expect(isAlreadyKnownError('bad-txns-inputs-missingorspent')).toBe(false);
+  });
+});
+
+describe('sameTxSkeleton (wallet may only add signatures)', () => {
+  const unsigned = buildWcTransaction(plan, { provider: new MockNetworkProvider(), buyerAddress: buyer }).hex;
+
+  it('accepts the signed version of the same tx', () => {
+    expect(unsigned).not.toBe(hex);
+    expect(sameTxSkeleton(unsigned, hex)).toBe(true);
+  });
+
+  it('rejects a tx with different outputs, and junk', () => {
+    const other = planPayment({
+      buyerUtxos: [{ txid: '22'.repeat(32), vout: 0, satoshis: 30_000n }],
+      invoice: { ...invoice, sats: 6000 },
+      buyerAddress: buyer,
+      feeRate: 1,
+      network: 'chipnet',
+    });
+    const otherHex = buildWcTransaction(other, { provider: new MockNetworkProvider(), buyerAddress: buyer }).hex;
+    expect(sameTxSkeleton(unsigned, otherHex)).toBe(false);
+    expect(sameTxSkeleton(unsigned, '')).toBe(false);
+    expect(sameTxSkeleton(unsigned, 'zz')).toBe(false);
   });
 });
