@@ -39,6 +39,8 @@ describe('encode/decode', () => {
 
   it('rejects wrong field types', () => {
     expect(() => decodeInvoice(encodeRaw(JSON.stringify({ ...base, sats: '5000' })))).toThrow(/sats/i);
+    expect(() => decodeInvoice(encodeRaw(JSON.stringify({ ...base, sats: 1.5 })))).toThrow(/whole/i);
+    expect(() => decodeInvoice(encodeRaw(JSON.stringify({ ...base, sats: 2 ** 60 })))).toThrow(/whole/i);
     expect(() => decodeInvoice(encodeRaw(JSON.stringify({ ...base, payee: 5 })))).toThrow(/payee/i);
     expect(() => decodeInvoice(encodeRaw(JSON.stringify({ ...base, currency: 'USD' })))).toThrow(/currency/i);
   });

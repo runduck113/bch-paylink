@@ -1,39 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlphanumericQRCode, useWizardConnect, WizardConnectQRDialog } from '@wizardconnect/react';
+import { AlphanumericQRCode, useWizardConnect } from '@wizardconnect/react';
 import { DAPP_NAME, EXPLORER_TX_URL, NETWORK } from '../config';
 import { decodeInvoice, validateInvoice, type Invoice } from '../lib/invoice';
+import { invoiceCommitment } from '../lib/receipt';
 import { formatSats, formatSatsAsBch } from '../lib/amount';
 import { receiptHash } from '../lib/routes';
-import { Address, ErrorBox, InvoiceSlip } from '../components/ui';
+import { Address, CheckIcon, ErrorBox, ReceiptPaper } from '../components/ui';
 import { loadWallet, nextStep, signAndBroadcast, type Next, type WalletSnapshot } from '../wallet/payment';
+import { broadcast, BroadcastUnknownError } from '../wallet/electrum';
 
-const dappIcon = () => `${window.location.origin}${import.meta.env.BASE_URL}icon.svg`;
-/** Phones get the QR inline plus an "open wallet" button; a modal would cover that button. */
-const useWideScreen = () => {
-  const query = '(min-width: 640px)';
-  const [wide, setWide] = useState(() => window.matchMedia(query).matches);
-  useEffect(() => {
-    const m = window.matchMedia(query);
-    const on = () => setWide(m.matches);
-    m.addEventListener('change', on);
-    return () => m.removeEventListener('change', on);
-  }, []);
-  return wide;
-};
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
-
-const QR_THEME = {
-  backdropColor: 'rgba(18, 26, 36, 0.55)',
-  dialogBackground: '#ffffff',
-  headerBackground: '#ffffff',
-  titleColor: '#121a24',
-  subtitleColor: '#4d5966',
-  uriRowBackground: '#f1f4f2',
-  uriTextColor: '#4d5966',
-  borderColor: '#d9e0da',
-  closeButtonColor: '#4d5966',
-  copyButtonColor: '#0b6e4f',
-};
+const explorer = (txid: string) => EXPLORER_TX_URL[NETWORK] + txid;
 
 type Phase =
   | { k: 'idle' }
@@ -41,7 +18,8 @@ type Phase =
   | { k: 'ready'; wallet: WalletSnapshot; next: Next }
   | { k: 'signing'; what: 'pay' | 'prep' }
   | { k: 'prepSent'; txid: string }
-  | { k: 'paid'; txid: string }
+  | { k: 'unknown'; what: 'pay' | 'prep'; txid: string; hex: string; category?: string; message: string }
+  | { k: 'paid'; txid: string; category: string }
   | { k: 'error'; message: string };
 
 export default function PayPage({ encoded }: { encoded: string }) {
@@ -55,12 +33,16 @@ export default function PayPage({ encoded }: { encoded: string }) {
 
   if ('error' in decoded) {
     return (
-      <main className="page">
-        <h1>This payment link does not work</h1>
-        <ErrorBox title="The link could not be read">
-          <p>{decoded.error}. Ask the sender for the link again, copied in full.</p>
-        </ErrorBox>
-        <a className="btn btn-ghost" href="#/">Make your own invoice</a>
+      <main className="sheet sheet-narrow">
+        <div className="sheet-head">
+          <h1>This link doesn’t open an invoice</h1>
+        </div>
+        <div className="sheet-flow">
+          <ErrorBox title="The link could not be read">
+            <p>{decoded.error}. Ask the sender to copy the whole link again.</p>
+          </ErrorBox>
+          <a className="btn btn-quiet" href="#/">Make your own invoice</a>
+        </div>
       </main>
     );
   }
@@ -69,112 +51,161 @@ export default function PayPage({ encoded }: { encoded: string }) {
 
 function PayInvoice({ invoice, encoded }: { invoice: Invoice; encoded: string }) {
   const problems = validateInvoice(invoice, NETWORK);
+  const [paid, setPaid] = useState<{ txid: string; category: string } | null>(null);
   return (
-    <main className="page">
-      <h1>Pay this invoice</h1>
-      <InvoiceSlip invoice={invoice} />
-      {problems.length > 0 ? (
-        <ErrorBox title="This invoice cannot be paid">
-          <ul>{problems.map((p) => <li key={p}>{p}</li>)}</ul>
-          <p>Nothing was sent. Ask the sender for a corrected link.</p>
-        </ErrorBox>
-      ) : (
-        <PayFlow invoice={invoice} encoded={encoded} />
-      )}
+    <main className="sheet">
+      <div className="sheet-head">
+        <h1>{paid ? 'Paid. Thank you.' : 'Pay this invoice'}</h1>
+        {!paid && <p className="lede">Check the amount and the address, then pay from your own wallet. You keep a receipt as an NFT.</p>}
+      </div>
+      <div className="sheet-paper">
+        <ReceiptPaper
+          invoice={invoice}
+          stamp={paid ? 'paid' : undefined}
+          stub={paid ? { commitment: invoiceCommitment(invoice), category: paid.category, txid: paid.txid } : undefined}
+        />
+      </div>
+      <div className="sheet-flow">
+        {problems.length > 0 ? (
+          <ErrorBox title="This invoice can’t be paid">
+            <ul>{problems.map((p) => <li key={p}>{p}</li>)}</ul>
+            <p>Nothing was sent. Ask the sender for a corrected link.</p>
+          </ErrorBox>
+        ) : paid ? (
+          <Paid txid={paid.txid} encoded={encoded} />
+        ) : (
+          <PayFlow invoice={invoice} onPaid={setPaid} />
+        )}
+      </div>
     </main>
   );
 }
 
-function PayFlow({ invoice, encoded }: { invoice: Invoice; encoded: string }) {
-  const wc = useWizardConnect({ dappName: DAPP_NAME, dappIcon: dappIcon() });
-  const [phase, setPhase] = useState<Phase>({ k: 'idle' });
+function PayFlow({ invoice, onPaid }: { invoice: Invoice; onPaid: (p: { txid: string; category: string }) => void }) {
+  const dappIcon = useMemo(() => new URL('icon.svg', document.baseURI).href, []);
+  const wc = useWizardConnect({ dappName: DAPP_NAME, dappIcon });
+  const [phase, setPhaseState] = useState<Phase>({ k: 'idle' });
+  const phaseRef = useRef<Phase>(phase);
+  const setPhase = useCallback((p: Phase) => {
+    phaseRef.current = p;
+    setPhaseState(p);
+  }, []);
   const abortRef = useRef<AbortController | null>(null);
+  const refreshSeq = useRef(0);
   const connected = wc.state === 'connected' && wc.manager !== null;
-  const wide = useWideScreen();
 
+  /** Re-read the wallet. Never while a sign request is open or a signed tx's fate is unknown (double-pay guard). */
   const refresh = useCallback(async () => {
-    if (!wc.manager) return;
+    const cur = phaseRef.current.k;
+    if (!wc.manager || cur === 'signing' || cur === 'unknown') return;
+    const seq = ++refreshSeq.current;
     setPhase({ k: 'loading' });
     try {
       const wallet = await loadWallet(wc.manager);
-      setPhase({ k: 'ready', wallet, next: nextStep(invoice, wallet) });
+      if (seq === refreshSeq.current) setPhase({ k: 'ready', wallet, next: nextStep(invoice, wallet) });
     } catch (e) {
-      setPhase({ k: 'error', message: `Could not read your wallet's coins: ${errorText(e)}` });
+      if (seq === refreshSeq.current) setPhase({ k: 'error', message: `Couldn’t read your wallet’s coins: ${errorText(e)}` });
     }
-  }, [wc.manager, invoice]);
+  }, [wc.manager, invoice, setPhase]);
 
   useEffect(() => {
-    if (connected) void refresh();
-    else setPhase((p) => (p.k === 'paid' ? p : { k: 'idle' }));
-  }, [connected, refresh]);
+    if (connected) {
+      if (phaseRef.current.k === 'idle') void refresh();
+      return;
+    }
+    // A short reconnect keeps pending sign requests (the library re-sends them), so leave the phase alone.
+    if (wc.state === 'reconnecting') return;
+    // Wallet went away. An open sign request can't finish: cancel it so the page doesn't wait forever.
+    if (phaseRef.current.k === 'signing') abortRef.current?.abort();
+    if (phaseRef.current.k !== 'unknown') setPhase({ k: 'idle' });
+  }, [connected, wc.state, refresh, setPhase]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  const settle = (what: 'pay' | 'prep', txid: string, category: string | undefined) => {
+    if (what === 'pay' && category) onPaid({ txid, category });
+    else setPhase({ k: 'prepSent', txid });
+  };
+
   const sign = async (what: 'pay' | 'prep') => {
-    if (phase.k !== 'ready' || !wc.manager || phase.next.kind === 'blocked') return;
-    const { wallet, next } = phase;
+    const p = phaseRef.current;
+    if (p.k !== 'ready' || !wc.manager || p.next.kind === 'blocked') return;
+    const { wallet, next } = p;
+    const category = next.kind === 'pay' ? next.plan.category : undefined;
     const ctrl = new AbortController();
     abortRef.current = ctrl;
     setPhase({ k: 'signing', what });
     try {
       const prompt = what === 'pay' ? `Pay invoice: ${invoice.memo || 'payment'}` : 'Prepare wallet for BCH Paylink';
       const txid = await signAndBroadcast(wc.manager, next.plan, wallet, prompt, ctrl.signal);
-      setPhase(what === 'pay' ? { k: 'paid', txid } : { k: 'prepSent', txid });
+      settle(what, txid, category);
     } catch (e) {
-      if (ctrl.signal.aborted) setPhase({ k: 'ready', wallet, next });
-      else setPhase({ k: 'error', message: errorText(e) });
+      if (e instanceof BroadcastUnknownError) {
+        setPhase({ k: 'unknown', what, txid: e.txid, hex: e.hex, category, message: e.message });
+      } else if (ctrl.signal.aborted) {
+        setPhase({ k: 'error', message: 'The request was cancelled. This page sent nothing.' });
+      } else {
+        setPhase({ k: 'error', message: errorText(e) });
+      }
     } finally {
       abortRef.current = null;
     }
   };
 
-  if (phase.k === 'paid') return <Paid txid={phase.txid} encoded={encoded} />;
+  const resend = async () => {
+    const p = phaseRef.current;
+    if (p.k !== 'unknown') return;
+    try {
+      const txid = await broadcast(p.hex);
+      settle(p.what, txid, p.category);
+    } catch (e) {
+      setPhase({ ...p, message: errorText(e) });
+    }
+  };
 
   return (
     <ol className="steps">
-      <li className={`step ${connected ? 'step-done' : 'step-active'}`}>
+      <li className={`step ${connected ? 'is-done' : 'is-current'}`}>
+        <span className="step-mark" aria-hidden="true">{connected ? <CheckIcon /> : '1'}</span>
         <h2 className="step-title">Connect your wallet</h2>
         {connected ? (
-          <p className="step-text">
+          <p className="step-body">
             Connected to {wc.walletName ?? 'your wallet'}.{' '}
-            <button type="button" className="link-button" onClick={() => void wc.disconnect()}>Disconnect</button>
+            <button type="button" className="text-button" onClick={() => void wc.disconnect()}>Disconnect</button>
           </p>
         ) : wc.state === 'connecting' ? (
-          <div className="step-text">
-            <p>Wallet on this phone? Open it directly. Otherwise scan the code with Paytaca or another WizardConnect wallet.</p>
-            {wc.uri && <a className="btn btn-primary" href={wc.uri}>Open in wallet app</a>}
-            {!wide && wc.qrUri && (
-              <div className="qr" aria-label="WizardConnect pairing QR code">
-                <AlphanumericQRCode value={wc.qrUri} size={220} foreground="#121a24" background="#ffffff" />
+          <div className="step-body">
+            <p>Scan this with Paytaca or another WizardConnect wallet. Wallet on this phone? Open it instead.</p>
+            {wc.qrUri && (
+              <div className="pair-qr">
+                <AlphanumericQRCode value={wc.qrUri} size={196} foreground="#16150f" background="#ffffff" />
               </div>
             )}
-            <button type="button" className="link-button" onClick={() => void wc.disconnect()}>Cancel</button>
+            <div className="row">
+              {wc.uri && <a className="btn btn-primary" href={wc.uri}>Open wallet app</a>}
+              <button type="button" className="text-button" onClick={() => void wc.disconnect()}>Cancel</button>
+            </div>
           </div>
         ) : wc.state === 'reconnecting' ? (
-          <p className="step-text">Reconnecting to your wallet…</p>
+          <div className="step-body">
+            <p className="working">Reconnecting to {wc.walletName ?? 'your wallet'}…</p>
+            <button type="button" className="text-button" onClick={() => void wc.disconnect()}>Forget this wallet</button>
+          </div>
         ) : (
-          <div className="step-text">
-            <p>Your wallet signs the payment. Keys never leave it and this page never holds funds.</p>
+          <div className="step-body">
+            <p>Your wallet signs. Your keys never leave it, and this page never holds money.</p>
             <button type="button" className="btn btn-primary" onClick={() => wc.connect()}>Connect wallet</button>
             {wc.error && <p className="error-text">{wc.error}</p>}
           </div>
         )}
       </li>
-      <li className={`step ${connected ? 'step-active' : 'step-waiting'}`}>
-        <h2 className="step-title">Review and pay</h2>
-        {connected && <PayStep phase={phase} invoice={invoice} onSign={sign} onRefresh={refresh} onCancel={() => abortRef.current?.abort()} />}
+      <li className={`step ${connected || phase.k === 'unknown' ? 'is-current' : 'is-later'}`}>
+        <span className="step-mark" aria-hidden="true">2</span>
+        <h2 className="step-title">Check and pay</h2>
+        {(connected || phase.k === 'unknown') && (
+          <PayStep phase={phase} invoice={invoice} onSign={sign} onRefresh={refresh} onResend={resend} onCancel={() => abortRef.current?.abort()} />
+        )}
       </li>
-      {wc.uri && wc.qrUri && (
-        <WizardConnectQRDialog
-          show={wide && wc.state === 'connecting'}
-          onClose={() => void wc.disconnect()}
-          uri={wc.uri}
-          qrUri={wc.qrUri}
-          title="Connect wallet"
-          subtitle="Scan with Paytaca or another WizardConnect wallet"
-          theme={QR_THEME}
-        />
-      )}
     </ol>
   );
 }
@@ -184,34 +215,48 @@ function PayStep(props: {
   invoice: Invoice;
   onSign: (what: 'pay' | 'prep') => void;
   onRefresh: () => void;
+  onResend: () => void;
   onCancel: () => void;
 }) {
-  const { phase, invoice, onSign, onRefresh, onCancel } = props;
+  const { phase, invoice, onSign, onRefresh, onResend, onCancel } = props;
   switch (phase.k) {
     case 'idle':
     case 'loading':
-      return <p className="step-text">Reading your wallet's coins…</p>;
+      return <p className="step-body working">Reading your wallet’s coins…</p>;
     case 'signing':
       return (
-        <div className="step-text">
-          <p className="pulse">Approve the {phase.what === 'pay' ? 'payment' : 'preparation'} in your wallet.</p>
-          <button type="button" className="link-button" onClick={onCancel}>Cancel request</button>
+        <div className="step-body">
+          <p className="working">Approve the {phase.what === 'pay' ? 'payment' : 'preparation'} in your wallet.</p>
+          <button type="button" className="text-button" onClick={onCancel}>Cancel request</button>
         </div>
       );
     case 'prepSent':
       return (
-        <div className="step-text">
-          <p>Wallet prepared (<a href={EXPLORER_TX_URL[NETWORK] + phase.txid} target="_blank" rel="noreferrer">view transaction</a>). Now you can pay.</p>
+        <div className="step-body">
+          <p>Wallet ready (<a href={explorer(phase.txid)} target="_blank" rel="noreferrer">see transaction</a>). Now you can pay.</p>
           <button type="button" className="btn btn-primary" onClick={onRefresh}>Continue to payment</button>
+        </div>
+      );
+    case 'unknown':
+      return (
+        <div className="step-body">
+          <ErrorBox title="Signed, but not confirmed as sent">
+            <p>{phase.message} Don’t pay again until you have checked this transaction.</p>
+            <p className="mono-small">{phase.txid}</p>
+          </ErrorBox>
+          <div className="row">
+            <button type="button" className="btn btn-primary" onClick={onResend}>Send the same transaction again</button>
+            <a className="btn btn-quiet" href={explorer(phase.txid)} target="_blank" rel="noreferrer">Check on explorer</a>
+          </div>
         </div>
       );
     case 'error':
       return (
-        <div className="step-text">
-          <ErrorBox title="Payment not sent">
+        <div className="step-body">
+          <ErrorBox title="Nothing was paid">
             <p>{phase.message}</p>
           </ErrorBox>
-          <button type="button" className="btn btn-secondary" onClick={onRefresh}>Try again</button>
+          <button type="button" className="btn btn-quiet" onClick={onRefresh}>Try again</button>
         </div>
       );
     case 'paid':
@@ -220,24 +265,24 @@ function PayStep(props: {
       const { next } = phase;
       if (next.kind === 'blocked') {
         return (
-          <div className="step-text">
-            <ErrorBox title="Can't pay from this wallet yet">
+          <div className="step-body">
+            <ErrorBox title="This wallet can’t pay yet">
               <p>{next.reason}</p>
             </ErrorBox>
-            <button type="button" className="btn btn-secondary" onClick={onRefresh}>Check again</button>
+            <button type="button" className="btn btn-quiet" onClick={onRefresh}>Check again</button>
           </div>
         );
       }
       if (next.kind === 'prep') {
         const out = next.plan.outputs[0];
         return (
-          <div className="step-text">
+          <div className="step-body">
             <p>
-              One short step first. The receipt NFT has to be created from a coin that was the first output of its transaction, and your wallet has none.
-              Sending your balance to yourself fixes that; it costs a network fee of {formatSats(next.plan.fee)} sats.
+              One small step first. The NFT receipt must be made from a coin that was the first output of its
+              transaction, and your wallet has none. Sending your balance to yourself fixes that.
             </p>
-            <dl className="summary">
-              <div><dt>Send to yourself</dt><dd>{formatSatsAsBch(out.sats)} BCH</dd></div>
+            <dl className="ledger">
+              <div><dt>Back to yourself</dt><dd>{formatSatsAsBch(out.sats)} BCH</dd></div>
               <div><dt>Network fee</dt><dd>{formatSats(next.plan.fee)} sats</dd></div>
             </dl>
             <button type="button" className="btn btn-primary" onClick={() => onSign('prep')}>Prepare wallet</button>
@@ -247,19 +292,14 @@ function PayStep(props: {
       const { plan } = next;
       const receipt = plan.outputs.find((o) => o.role === 'receipt');
       return (
-        <div className="step-text">
-          <dl className="summary">
+        <div className="step-body">
+          <dl className="ledger">
             <div><dt>To the seller</dt><dd>{formatSatsAsBch(invoice.sats)} BCH</dd></div>
             <div><dt>Network fee</dt><dd>{formatSats(plan.fee)} sats</dd></div>
-            {receipt && (
-              <div>
-                <dt>Receipt NFT to you</dt>
-                <dd>{formatSats(receipt.sats)} sats, stays yours</dd>
-              </div>
-            )}
-            {receipt && <div><dt>Receipt goes to</dt><dd><Address value={receipt.to} /></dd></div>}
+            {receipt && <div><dt>NFT receipt, kept by you</dt><dd>{formatSats(receipt.sats)} sats</dd></div>}
+            {receipt && <div className="ledger-wide"><dt>Receipt goes to</dt><dd><Address value={receipt.to} /></dd></div>}
           </dl>
-          <button type="button" className="btn btn-primary btn-pay" onClick={() => onSign('pay')}>
+          <button type="button" className="btn btn-primary btn-wide" onClick={() => onSign('pay')}>
             Pay {formatSatsAsBch(invoice.sats)} BCH
           </button>
         </div>
@@ -269,14 +309,16 @@ function PayStep(props: {
 }
 
 function Paid({ txid, encoded }: { txid: string; encoded: string }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  useEffect(() => ref.current?.focus(), []);
   return (
-    <section className="paid" aria-live="polite">
-      <h2>Paid</h2>
-      <p>The payment and your NFT receipt are in one transaction.</p>
-      <p className="txid"><span className="field-label">Transaction ID</span><code>{txid}</code></p>
+    <section className="done">
+      <h2 ref={ref} tabIndex={-1}>Payment sent</h2>
+      <p>The payment and your NFT receipt went out in one transaction.</p>
+      <p className="mono-small">{txid}</p>
       <div className="row">
-        <a className="btn btn-primary" href={receiptHash(txid, encoded)}>See the receipt</a>
-        <a className="btn btn-ghost" href={EXPLORER_TX_URL[NETWORK] + txid} target="_blank" rel="noreferrer">View on explorer</a>
+        <a className="btn btn-primary" href={receiptHash(txid, encoded)}>Open the receipt</a>
+        <a className="btn btn-quiet" href={explorer(txid)} target="_blank" rel="noreferrer">See it on the explorer</a>
       </div>
     </section>
   );

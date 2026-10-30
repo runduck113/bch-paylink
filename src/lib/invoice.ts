@@ -40,7 +40,8 @@ export function decodeInvoice(text: string): Invoice {
   const o = raw as Record<string, unknown>;
   if (o.v !== 1) throw new Error(`Unsupported invoice version: ${String(o.v)}`);
   if (typeof o.payee !== 'string') throw new Error('Invalid invoice: payee must be text');
-  if (typeof o.sats !== 'number') throw new Error('Invalid invoice: sats must be a number');
+  // Whole, safe integers only: every consumer converts sats to BigInt, which throws on fractions.
+  if (typeof o.sats !== 'number' || !Number.isSafeInteger(o.sats)) throw new Error('Invalid invoice: sats must be a whole number');
   if (typeof o.memo !== 'string') throw new Error('Invalid invoice: memo must be text');
   if (o.due !== undefined && typeof o.due !== 'string') throw new Error('Invalid invoice: due must be text');
   if (o.currency !== 'BCH') throw new Error('Invalid invoice: currency must be BCH');

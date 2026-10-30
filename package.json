@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@bitauth/libauth": "^3.0.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
     "@wizardconnect/core": "^0.2.5",
     "@wizardconnect/dapp": "^0.2.2",
     "@wizardconnect/react": "^0.2.3",

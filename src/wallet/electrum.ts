@@ -1,6 +1,6 @@
 import { ElectrumNetworkProvider, Network } from 'cashscript';
 import { NETWORK } from '../config';
-import { isAlreadyKnownError, txidOf } from '../lib/txReceipt';
+import { isAlreadyKnownError, isDefiniteRejection, txidOf } from '../lib/txReceipt';
 
 let provider: ElectrumNetworkProvider | null = null;
 
@@ -10,16 +10,54 @@ export function getProvider(): ElectrumNetworkProvider {
   return provider;
 }
 
-/** Broadcast a signed tx; "already known" (e.g. the wallet broadcast it too) counts as success. Returns the txid. */
+const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+/** The node refused the transaction: nothing was sent, so planning a new one is safe. */
+export class BroadcastRejectedError extends Error {
+  constructor(reason: string) {
+    super(`The network refused the transaction, nothing was sent: ${reason}`);
+    this.name = 'BroadcastRejectedError';
+  }
+}
+
+/** We could not tell whether the signed transaction reached the network. Never re-plan; resend the same hex. */
+export class BroadcastUnknownError extends Error {
+  readonly txid: string;
+  readonly hex: string;
+  constructor(txid: string, hex: string, reason: string) {
+    super(`Could not confirm the transaction reached the network (${reason}).`);
+    this.name = 'BroadcastUnknownError';
+    this.txid = txid;
+    this.hex = hex;
+  }
+}
+
+async function isKnown(txid: string): Promise<boolean> {
+  try {
+    await getProvider().getRawTransaction(txid);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Broadcast a signed tx and return its txid. "Already known" (e.g. the wallet broadcast it too) is success.
+ * A clear node rejection throws BroadcastRejectedError; any other failure is checked by looking the txid up,
+ * and if still unclear throws BroadcastUnknownError carrying the hex, so the caller can resend the same tx.
+ */
 export async function broadcast(hex: string): Promise<string> {
   const txid = txidOf(hex);
   try {
     await getProvider().sendRawTransaction(hex);
+    return txid;
   } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    if (!isAlreadyKnownError(message)) throw new Error(`The network rejected the transaction: ${message}`);
+    const message = messageOf(e);
+    if (isAlreadyKnownError(message)) return txid;
+    if (isDefiniteRejection(message)) throw new BroadcastRejectedError(message);
+    if (await isKnown(txid)) return txid;
+    throw new BroadcastUnknownError(txid, hex, message);
   }
-  return txid;
 }
 
 export const fetchRawTx = (txid: string) => getProvider().getRawTransaction(txid);

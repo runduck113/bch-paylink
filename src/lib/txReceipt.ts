@@ -72,6 +72,14 @@ export function checkTxAgainstInvoice(tx: ParsedTx, invoice: Invoice): InvoiceCh
   };
 }
 
+/**
+ * True when Electrum's error says the node evaluated and refused the tx (so it was not relayed and a new
+ * attempt cannot double-pay). Anything else (timeouts, dropped sockets) leaves the outcome unknown.
+ */
+export function isDefiniteRejection(message: string): boolean {
+  return /bad-txns|mandatory-script-verify|non-mandatory-script-verify|missing-?inputs|missingorspent|mempool-conflict|txn-mempool-conflict|insufficient fee|min relay fee|dust|non-final|scriptsig|too-long-mempool-chain|rejected by network rules|bad-tx|-26|-25/i.test(message) && !isAlreadyKnownError(message);
+}
+
 /** Electrum rejects a re-broadcast of a tx it already has; for us that is success. */
 export function isAlreadyKnownError(message: string): boolean {
   return /already known|already have transaction|txn-already|already in (the )?mempool|transaction already in block chain/i.test(message);

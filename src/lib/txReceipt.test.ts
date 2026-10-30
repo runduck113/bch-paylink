@@ -5,7 +5,7 @@ import { buildWcTransaction } from './buildTx';
 import { planPayment } from './plan';
 import type { Invoice } from './invoice';
 import { addr } from './testAddresses';
-import { checkTxAgainstInvoice, isAlreadyKnownError, parseTx, sameTxSkeleton, txidOf } from './txReceipt';
+import { checkTxAgainstInvoice, isAlreadyKnownError, isDefiniteRejection, parseTx, sameTxSkeleton, txidOf } from './txReceipt';
 
 const priv = new Uint8Array(32).fill(7);
 const pub = secp256k1.derivePublicKeyCompressed(priv) as Uint8Array;
@@ -102,5 +102,15 @@ describe('sameTxSkeleton (wallet may only add signatures)', () => {
     expect(sameTxSkeleton(unsigned, otherHex)).toBe(false);
     expect(sameTxSkeleton(unsigned, '')).toBe(false);
     expect(sameTxSkeleton(unsigned, 'zz')).toBe(false);
+  });
+});
+
+describe('isDefiniteRejection (safe to re-plan only when the node refused the tx)', () => {
+  it.each(['bad-txns-inputs-missingorspent', 'mandatory-script-verify-flag-failed (Signature must be zero)', 'txn-mempool-conflict', 'min relay fee not met', 'dust'])(
+    '%s is a rejection',
+    (m) => expect(isDefiniteRejection(m)).toBe(true),
+  );
+  it.each(['Request timed out', 'socket hang up', 'WebSocket closed', 'txn-already-known'])('%s is not', (m) => {
+    expect(isDefiniteRejection(m)).toBe(false);
   });
 });
