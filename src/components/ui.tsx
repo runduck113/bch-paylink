@@ -9,7 +9,11 @@ export function Banner() {
     <header className="banner">
       <a className="brand" href="#/">BCH Paylink</a>
       <nav className="banner-links" aria-label="Project links">
-        <a href={SLIDES_URL} target="_blank" rel="noreferrer">Slides</a>
+        {SLIDES_URL ? (
+          <a href={SLIDES_URL} target="_blank" rel="noreferrer">Slides</a>
+        ) : (
+          <span className="banner-soon">Slides (soon)</span>
+        )}
         <a href={GITHUB_URL} target="_blank" rel="noreferrer">GitHub</a>
         <span className="token-addr">
           <span className="token-label">CashTokens address</span>

@@ -72,6 +72,7 @@ code { font-family: var(--mono); }
 .banner-links { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; min-width: 0; }
 .token-addr { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
 .token-label { color: #9d9b93; }
+.banner-soon { color: #9d9b93; }
 .token-addr code { color: #fcfcf9; font-size: 13px; overflow-wrap: anywhere; }
 .btn-banner {
   font: 500 13px var(--mono);

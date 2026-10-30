@@ -1,8 +1,8 @@
 import { resolveNetwork, type AppNetwork } from './lib/appNetwork';
 
-/** Hackathon banner links. Replace the placeholders once the slides and repo are public. */
-export const SLIDES_URL = 'https://example.com/slides-placeholder';
-export const GITHUB_URL = 'https://github.com/your-name/bch-paylink';
+/** Hackathon banner links. Leave SLIDES_URL empty until the slides are public; the banner then shows "Slides (soon)". */
+export const SLIDES_URL: string = '';
+export const GITHUB_URL = 'https://github.com/runduck113/bch-paylink';
 /** Project CashTokens address shown in the banner (owner's Paytaca wallet, public). */
 export const PROJECT_TOKEN_ADDRESS = 'bitcoincash:zz8l22vpcx037klsqha3jzqq8lsnx4jkryzf0mhn77';
 

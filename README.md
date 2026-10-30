@@ -1,16 +1,26 @@
 # BCH Paylink
 
-Make a Bitcoin Cash payment link. The buyer opens it, pays from their own wallet through WizardConnect (Paytaca), and the same transaction mints a CashTokens NFT to the buyer. The NFT commitment is a fingerprint of the invoice, so anyone can check which invoice a payment was for.
+A payment link for Bitcoin Cash. The seller fills in an invoice and gets a link and a QR code. The buyer opens the link, pays from their own wallet over WizardConnect, and the same transaction mints a CashTokens NFT to the buyer as a receipt. The NFT commitment is a hash of the invoice, so anyone can check which invoice a payment was for.
 
-Static site, no backend, no custody. Invoice data lives in the link (base64url JSON).
+It is a static site: no backend, no accounts, no custody. The app never sees a private key.
 
-## Pages
+Live (once published): https://runduck113.github.io/bch-paylink/
 
-- `#/` print an invoice: payee address, amount in BCH, memo, optional due date. Gives a link and a QR code.
-- `#/pay/<invoice>` shows the invoice, connects a wallet (WizardConnect), plans and builds the transaction, asks the wallet to sign, checks the wallet only added signatures, then broadcasts through Electrum.
-- `#/receipt/<txid>?inv=<invoice>` reads the transaction from Electrum, shows the NFT (category, commitment) and whether it matches the invoice.
+**Status:** hackathon build. The logic is covered by unit tests and the pages were checked in a browser (receipt pages against mocked Electrum data), but the full flow has not yet been verified end-to-end with a real wallet. Do not use it for amounts you care about.
 
-## Run
+## How to use
+
+1. Open `#/` and fill in the payee address, the amount in BCH, a memo and an optional due date. You get a link and a QR code.
+2. Send the link to the buyer. On `#/pay/<invoice>` they connect a wallet (Paytaca, via WizardConnect), review the transaction and sign it.
+3. After the payment, `#/receipt/<txid>?inv=<invoice>` shows the receipt NFT and whether it matches the invoice.
+
+## How it works
+
+- **Invoice in the URL.** The invoice is base64url-encoded JSON inside the link (`#/pay/<invoice>`), so nothing is stored on a server. Links are capped at 4096 characters and validated when decoded.
+- **WizardConnect signing.** The wallet shares xpubs for its `receive` and `change` chains. The app derives the first 20 addresses of each, asks Electrum for their coins, builds the transaction, and sends it to the wallet with `inputPaths` so the wallet knows which key signs which input. The app asks the wallet not to broadcast, checks that the wallet only added signatures, then broadcasts the signed hex itself. If a broadcast result is unclear, it offers to resend the same transaction, never a new one.
+- **NFT receipt in the same transaction.** CashTokens genesis needs input 0 to spend an output 0 of its parent transaction; that parent txid becomes the token category. The outputs are the payment to the payee, the receipt NFT to the buyer's receive/0 address, and change. The NFT commitment is the first 20 bytes of sha256 over a canonical JSON form of the invoice. If the wallet has no suitable coin, the app offers a small self-send first ("Prepare wallet").
+
+## Run locally
 
 ```sh
 npm install
@@ -22,11 +32,10 @@ npm run preview
 
 Network: set `VITE_NETWORK=mainnet` or `VITE_NETWORK=chipnet`. Unset means chipnet in `vite dev` and mainnet in `vite build`.
 
+The production build uses the base path `/bch-paylink/` for GitHub Pages. Routing is hash-based, so deep links work without server rewrites. `.github/workflows/pages.yml` runs the tests, builds and deploys on every push to `master`.
+
 Banner links (slides, GitHub) and the project CashTokens address are in `src/config.ts`.
 
-## How payment works
+## License
 
-1. The wallet shares xpubs for its `receive` and `change` chains. The app derives the first 20 addresses of each and asks Electrum for their coins.
-2. Input 0 must be a coin that was output 0 of its transaction (CashTokens genesis rule). If the wallet has none, the app offers a "Prepare wallet" self-send first.
-3. Outputs: payee amount, receipt NFT to the buyer's receive/0 address, change to the same address.
-4. Sign request: `inputPaths` = `[inputIndex, 'receive' | 'change', addressIndex]` per input. The app asks the wallet not to broadcast and broadcasts the signed hex itself. If the result of a broadcast is unclear, it offers to resend the same transaction, never a new one.
+MIT, see [LICENSE](LICENSE).
