@@ -4,7 +4,7 @@ A payment link for Bitcoin Cash. The seller fills in an invoice and gets a link 
 
 It is a static site: no backend, no accounts, no custody. The app never sees a private key.
 
-Live (once published): https://runduck113.github.io/bch-paylink/
+Live: https://runduck113.github.io/bch-paylink/
 
 **Status:** hackathon build. The logic is covered by unit tests and the pages were checked in a browser (receipt pages against mocked Electrum data), but the full flow has not yet been verified end-to-end with a real wallet. Do not use it for amounts you care about.
 
