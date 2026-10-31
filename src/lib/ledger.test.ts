@@ -8,6 +8,7 @@ import {
   invoicesFor,
   ledgerCsv,
   ledgerEntry,
+  ledgerLinkFor,
   ledgerTotals,
   matchInvoices,
   parseLedgerTx,
@@ -59,6 +60,18 @@ describe('sellerScript', () => {
   ])('rejects %j', (text, msg) => {
     const s = sellerScript(text, 'mainnet');
     expect('error' in s ? s.error : '').toMatch(msg);
+  });
+});
+
+describe('ledgerLinkFor', () => {
+  it('links to the ledger of a valid payee address', () => {
+    expect(ledgerLinkFor(SELLER, 'mainnet')).toBe(`#/ledger?addr=${encodeURIComponent(SELLER)}`);
+  });
+  it('normalises a padded, upper-case or prefix-less address', () => {
+    expect(ledgerLinkFor(`  ${SELLER.slice('bitcoincash:'.length).toUpperCase()} `, 'mainnet')).toBe(`#/ledger?addr=${encodeURIComponent(SELLER)}`);
+  });
+  it.each([[''], ['bitcoincash:qz8l22'], ['hello'], [addr('bchtest', 3)]])('falls back to the address form for %j', (payee) => {
+    expect(ledgerLinkFor(payee, 'mainnet')).toBe('#/ledger');
   });
 });
 

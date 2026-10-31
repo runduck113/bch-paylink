@@ -261,11 +261,16 @@ function Ledger({ seller, note }: { seller: SellerScript; note: ReactNode }) {
               ) : entries.length === 0 && !reading && pageError === null ? (
                 <p className="ledger-empty">No incoming payments in the transactions read so far. The rest are payments sent from this address.</p>
               ) : (
-                <ol className="tape">
-                  {entries.map((e) => (
-                    <TapeLine key={e.txid} entry={e} match={e.receipt ? byCommitment.get(e.receipt.commitment) : undefined} encodedOf={encodedOf} />
-                  ))}
-                </ol>
+                <>
+                  {entries.some((e) => e.receipt) && (
+                    <p className="line-hint">Invoice fingerprint: a hash of the invoice. The buyer’s NFT receipt carries the same value. The full value is on each receipt.</p>
+                  )}
+                  <ol className="tape">
+                    {entries.map((e) => (
+                      <TapeLine key={e.txid} entry={e} match={e.receipt ? byCommitment.get(e.receipt.commitment) : undefined} encodedOf={encodedOf} />
+                    ))}
+                  </ol>
+                </>
               )}
               {reading && <p className="working" aria-hidden="true">{entries.length > 0 ? 'Reading more' : 'Reading transactions'}</p>}
               {pageError && (
@@ -338,7 +343,7 @@ function InvoicePanel({
       <Perforation />
       <h2 className="line-label">Invoices</h2>
       {matches.length === 0 ? (
-        <p className="line-hint">No invoices for this address in this browser yet. Paste a pay link below to check whether it was paid.</p>
+        <p className="line-hint">No invoices for this address in this browser yet. Paste an invoice link below to check whether it was paid.</p>
       ) : (
         <ul className="invoice-list">
           {matches.map((m) => {
@@ -370,7 +375,7 @@ function InvoicePanel({
         <input
           id={`${id}-inv`}
           className="link-field"
-          placeholder="Paste a pay link (…/#/pay/…)"
+          placeholder="Paste an invoice link (…/#/pay/…)"
           value={text}
           onChange={(e) => setText(e.target.value)}
           aria-invalid={error ? true : undefined}
@@ -403,7 +408,9 @@ const TapeLine = memo(function TapeLine({ entry, match, encodedOf }: { entry: Le
       </p>
       {entry.receipt && (
         <>
-          <p className="tape-fp">fingerprint <code>{entry.receipt.commitment}</code></p>
+          <p className="tape-fp">
+            invoice fingerprint <code title={entry.receipt.commitment}>{entry.receipt.commitment.slice(0, 8)}…{entry.receipt.commitment.slice(-6)}</code>
+          </p>
           <p className="tape-match">
             {match ? (
               <>
@@ -414,9 +421,8 @@ const TapeLine = memo(function TapeLine({ entry, match, encodedOf }: { entry: Le
               </>
             ) : (
               <>
-                Receipt for an invoice not in this browser
-                {' · '}
-                <a href={receiptHash(entry.txid)}>see receipt</a>
+                Paid with Paylink. The invoice isn’t saved in this browser.{' '}
+                <a href={receiptHash(entry.txid)}>See receipt</a>
               </>
             )}
           </p>

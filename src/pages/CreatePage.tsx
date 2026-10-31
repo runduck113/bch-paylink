@@ -1,10 +1,10 @@
-import { useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { DEMO_RECEIPT, NETWORK } from '../config';
 import { encodeInvoice, validateInvoice, MAX_MEMO_CHARS, MIN_INVOICE_SATS, type Invoice } from '../lib/invoice';
 import { cashAddrPrefix } from '../lib/network';
 import { formatSats, formatSatsAsBch, parseBchToSats } from '../lib/amount';
 import { ledgerHash, payHash, receiptHash } from '../lib/routes';
-import { sellerScript } from '../lib/ledger';
+import { ledgerLinkFor } from '../lib/ledger';
 import { browserStore, rememberInvoice } from '../lib/invoiceBook';
 import { Counter, ErrorBox, PaperHead, Slip } from '../components/ui';
 
@@ -44,8 +44,8 @@ export default function CreatePage() {
   const parsed = amount.trim() ? parseBchToSats(amount) : null;
   const prefix = cashAddrPrefix(NETWORK);
   const memoChars = [...memo].length;
-  const seller = useMemo(() => (payee ? sellerScript(payee, NETWORK) : null), [payee]);
-  const ledgerLink = ledgerHash(seller && !('error' in seller) ? seller.address : undefined);
+  // Only the address typed on this slip (kept per tab), never one from another session: a fresh visitor gets the address form.
+  const ledgerLink = ledgerLinkFor(payee, NETWORK);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();

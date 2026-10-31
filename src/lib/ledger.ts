@@ -4,6 +4,7 @@ import { COMMITMENT_BYTES, invoiceCommitment } from './receipt';
 import { parseTx, type ParsedOutput } from './txReceipt';
 import { formatSatsAsBch } from './amount';
 import { cashAddrPrefix, type Network } from './network';
+import { ledgerHash } from './routes';
 
 /**
  * The seller's ledger, read from the chain: which transactions paid the address, which of them carry a
@@ -32,6 +33,12 @@ export function sellerScript(text: string, network: Network): SellerScript | { e
   const lock = cashAddressToLockingBytecode(address);
   if (typeof lock === 'string') return { error: 'This is not a valid Bitcoin Cash address.' };
   return { address, lockHex: binToHex(lock.bytecode), scriptHash: binToHex(sha256.hash(lock.bytecode).reverse()) };
+}
+
+/** The create page's "Your ledger" link: that address's ledger when the payee field holds a valid address, else the ledger's own address form. */
+export function ledgerLinkFor(payee: string, network: Network): string {
+  const s = sellerScript(payee, network);
+  return ledgerHash('error' in s ? undefined : s.address);
 }
 
 export interface LedgerTx {
