@@ -6,7 +6,7 @@ It is a static site: no backend, no accounts, no custody. The app never sees a p
 
 Live: https://runduck113.github.io/bch-paylink/
 
-**Status:** hackathon build. The logic is covered by unit tests and the pages were checked in a browser (receipt pages against mocked Electrum data), but the full flow has not yet been verified end-to-end with a real wallet. Do not use it for amounts you care about.
+**Status:** hackathon build. Verified end-to-end on mainnet with Paytaca over WizardConnect: [transaction d4d54134…74184f](https://blockchair.com/bitcoin-cash/transaction/d4d54134624c5fa42e72833d268559ec24ff57385a1d49727d5ee254d874184f) pays the invoice (10,000 sats) and mints the NFT receipt to the buyer in one transaction. Still a hackathon build: do not use it for amounts you care about.
 
 ## How to use
 
