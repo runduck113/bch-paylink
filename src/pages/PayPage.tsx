@@ -4,7 +4,7 @@ import { DAPP_NAME, EXPLORER_TX_URL, NETWORK, WALLET_ADDRESS_SCAN_COUNT } from '
 import { decodeInvoice, validateInvoice, type Invoice } from '../lib/invoice';
 import { invoiceCommitment } from '../lib/receipt';
 import { formatSats, formatSatsAsBch } from '../lib/amount';
-import { absoluteLink, payHash, receiptHash } from '../lib/routes';
+import { absoluteLink, ledgerHash, payHash, receiptHash } from '../lib/routes';
 import { Address, CheckIcon, CopyButton, Counter, DeadEnd, ErrorBox, InvoiceLines, NftStub, PaperHead, Perforation, Slip } from '../components/ui';
 import { loadWallet, nextStep, signAndBroadcast, type Next, type WalletSnapshot } from '../wallet/payment';
 import { broadcast, BroadcastRejectedError, BroadcastUnknownError } from '../wallet/electrum';
@@ -118,6 +118,8 @@ function PayInvoice({ invoice, encoded, counter }: { invoice: Invoice; encoded: 
         {counter && (
           <p className="paper-again">
             <a className="text-button" href="#/">Print another invoice</a>
+            <span className="paper-again-sep" aria-hidden="true"> · </span>
+            <a className="text-button" href={ledgerHash(invoice.payee)}>Your ledger</a>
           </p>
         )}
       </Slip>

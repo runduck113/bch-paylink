@@ -3,6 +3,7 @@ export type Route =
   | { page: 'create' }
   | { page: 'pay'; encoded: string }
   | { page: 'receipt'; txid: string; encoded?: string }
+  | { page: 'ledger'; addr?: string }
   | { page: 'notFound' };
 
 const TXID = /^[0-9a-f]{64}$/;
@@ -21,11 +22,16 @@ export function parseRoute(hash: string): Route {
     const inv = new URLSearchParams(query).get('inv');
     return inv ? { page: 'receipt', txid, encoded: inv } : { page: 'receipt', txid };
   }
+  if (parts[0] === 'ledger' && parts.length === 1) {
+    const addr = new URLSearchParams(query).get('addr')?.trim();
+    return addr ? { page: 'ledger', addr } : { page: 'ledger' };
+  }
   return { page: 'notFound' };
 }
 
 export const payHash = (encoded: string) => `#/pay/${encoded}`;
 export const receiptHash = (txid: string, encoded?: string) => `#/receipt/${txid}` + (encoded ? `?inv=${encoded}` : '');
+export const ledgerHash = (addr?: string) => '#/ledger' + (addr ? `?addr=${encodeURIComponent(addr)}` : '');
 
 /** Absolute link for sharing: current page URL without its hash, plus the route hash. */
 export const absoluteLink = (pageUrl: string, hash: string) => pageUrl.split('#')[0] + hash;

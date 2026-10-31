@@ -1,9 +1,11 @@
-import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useId, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { DEMO_RECEIPT, NETWORK } from '../config';
 import { encodeInvoice, validateInvoice, MAX_MEMO_CHARS, MIN_INVOICE_SATS, type Invoice } from '../lib/invoice';
 import { cashAddrPrefix } from '../lib/network';
 import { formatSats, formatSatsAsBch, parseBchToSats } from '../lib/amount';
-import { payHash, receiptHash } from '../lib/routes';
+import { ledgerHash, payHash, receiptHash } from '../lib/routes';
+import { sellerScript } from '../lib/ledger';
+import { browserStore, rememberInvoice } from '../lib/invoiceBook';
 import { Counter, ErrorBox, PaperHead, Slip } from '../components/ui';
 
 /** Query flag on the pay route: the invoice was just printed at the counter, so the pay page starts the wallet pairing. */
@@ -42,6 +44,8 @@ export default function CreatePage() {
   const parsed = amount.trim() ? parseBchToSats(amount) : null;
   const prefix = cashAddrPrefix(NETWORK);
   const memoChars = [...memo].length;
+  const seller = useMemo(() => (payee ? sellerScript(payee, NETWORK) : null), [payee]);
+  const ledgerLink = ledgerHash(seller && !('error' in seller) ? seller.address : undefined);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -54,7 +58,10 @@ export default function CreatePage() {
     setErrors(problems);
     if (problems.length) return;
     keepPayee(invoice.payee);
-    window.location.hash = `${payHash(encodeInvoice(invoice))}?${COUNTER_FLAG}`;
+    const encoded = encodeInvoice(invoice);
+    // So the seller's ledger can match it later; storage blocked just means pasting the link there.
+    rememberInvoice(browserStore(), encoded);
+    window.location.hash = `${payHash(encoded)}?${COUNTER_FLAG}`;
   };
 
   // The address is a textarea so it can wrap on the paper; Enter still submits, like a single-line field.
@@ -72,7 +79,7 @@ export default function CreatePage() {
       <p className="lede lede-quiet">No account, no backend. The whole invoice lives in the link.</p>
       {NETWORK === 'mainnet' && (
         <p className="lede">
-          No wallet at hand? <a href={receiptHash(DEMO_RECEIPT.txid, DEMO_RECEIPT.invoice)}>See a real paid receipt</a>, checked live against mainnet.
+          No wallet at hand? <a href={receiptHash(DEMO_RECEIPT.txid, DEMO_RECEIPT.invoice)}>See a real paid receipt</a>, checked live against mainnet, or <a href={ledgerHash(DEMO_RECEIPT.payee)}>that seller’s ledger</a>.
         </p>
       )}
     </>
@@ -160,6 +167,7 @@ export default function CreatePage() {
           <button type="submit" className="btn btn-primary btn-wide">Print payment link</button>
         </form>
         <p className="paper-foot">Paid from the buyer’s own wallet. The same transaction gives them an NFT receipt.</p>
+        <p className="paper-again"><a className="text-button" href={ledgerLink}>Your ledger: payments and paid invoices</a></p>
       </Slip>
     </Counter>
   );

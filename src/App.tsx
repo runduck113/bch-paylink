@@ -6,6 +6,7 @@ import CreatePage, { COUNTER_FLAG } from './pages/CreatePage';
 // Wallet and Electrum code is heavy; load it only on the pages that need it.
 const PayPage = lazy(() => import('./pages/PayPage'));
 const ReceiptPage = lazy(() => import('./pages/ReceiptPage'));
+const LedgerPage = lazy(() => import('./pages/LedgerPage'));
 
 /** Last line of defence: a bad link or a library error shows a message instead of a blank page. */
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -48,6 +49,7 @@ export default function App() {
           {route.page === 'create' && <CreatePage />}
           {route.page === 'pay' && <PayPage key={route.encoded} encoded={route.encoded} counter={counter} />}
           {route.page === 'receipt' && <ReceiptPage key={route.txid} txid={route.txid} encoded={route.encoded} />}
+          {route.page === 'ledger' && <LedgerPage key={route.addr ?? ''} addr={route.addr} />}
           {route.page === 'notFound' && (
             <DeadEnd title="Nothing printed here">
               <p>This address doesn’t match a page.</p>

@@ -432,6 +432,7 @@ h1 {
   transition: background-color 120ms, translate 120ms var(--ease-out), box-shadow 120ms;
 }
 .btn:active { translate: 0 1px; }
+.btn:disabled { opacity: 0.55; cursor: progress; translate: none; }
 .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .btn-primary { background: var(--bch); color: var(--ink); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25), inset 0 -2px 0 rgba(0, 0, 0, 0.12); }
 .btn-primary:hover { background: var(--bch-press); }
@@ -456,6 +457,54 @@ h1 {
 .text-button:hover { color: var(--ink); }
 .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
 .paper-section > .row > .btn { flex: 1 1 160px; }
+
+/* ── Ledger: the seller's till roll ── */
+h2.line-label { margin: 0; }
+.ledger-scope:focus { outline: none; }
+.ledger-totals { margin-bottom: 8px; }
+.ledger-totals dt { font-size: 12px; }
+.tally { color: var(--ink-soft); font-weight: 400; }
+.ledger-scope { margin: 0 0 4px !important; }
+.ledger-empty { display: grid; gap: 4px; font-size: 13px; }
+.paper-again-sep { color: var(--ink-faint); }
+
+.invoice-list, .tape { list-style: none; margin: 0; padding: 0; display: grid; min-width: 0; }
+.invoice-row { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px dashed var(--paper-line); min-width: 0; }
+.invoice-row:first-child { border-top: 1.5px solid var(--ink); }
+.invoice-main { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; min-width: 0; }
+.invoice-memo { font-weight: 500; overflow-wrap: anywhere; min-width: 0; }
+.invoice-amount { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.invoice-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 12px; }
+.invoice-meta .text-button { margin-left: auto; padding: 2px; font-size: 12px; }
+.status-chip, .kind-chip {
+  display: inline-block;
+  padding: 0 7px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
+.chip-paid, .kind-receipt { color: var(--bch-ink); }
+.chip-underpaid, .chip-unpaid { color: var(--bad); }
+.kind-chip { color: var(--ink-soft); border-style: dashed; }
+.kind-chip.kind-receipt { border-style: solid; }
+.invoice-add { display: flex; gap: 8px; min-width: 0; }
+.invoice-add .link-field { flex: 1; min-width: 0; }
+.invoice-add .btn { flex: none; min-height: 40px; padding-inline: 16px; }
+
+.tape-line { display: grid; gap: 3px; padding: 12px 0; border-bottom: 1px dashed var(--paper-line); min-width: 0; font-size: 12.5px; }
+.tape-line:first-child { border-top: 1.5px solid var(--ink); }
+.tape-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; min-width: 0; }
+.tape-when { color: var(--ink-soft); font-size: 12px; }
+.tape-amount { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tape-sats { color: var(--ink-soft); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tape-tx, .tape-fp, .tape-match { margin: 0; overflow-wrap: anywhere; word-break: break-word; }
+.tape-fp { color: var(--ink-soft); }
+.tape-fp code { color: var(--ink); word-break: break-all; }
+.tape-match { font-size: 12px; }
 
 /* ── Messages, in red ink ── */
 .notice { width: 100%; padding: 12px 14px; border: 1.5px solid var(--bad); border-radius: 3px; background: var(--bad-wash); color: #5e140e; font-size: 13px; }

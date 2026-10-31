@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveNetwork } from './appNetwork';
 import { formatSats, formatSatsAsBch, parseBchToSats } from './amount';
-import { absoluteLink, parseRoute, payHash, receiptHash } from './routes';
+import { absoluteLink, ledgerHash, parseRoute, payHash, receiptHash } from './routes';
 
 describe('resolveNetwork', () => {
   it('defaults: chipnet in dev, mainnet in production', () => {
@@ -52,6 +52,14 @@ describe('routes', () => {
     expect(parseRoute(`#/receipt/${txid.toUpperCase()}`)).toEqual({ page: 'receipt', txid });
     expect(parseRoute('#/receipt/xyz')).toEqual({ page: 'notFound' });
     expect(parseRoute('#/nope')).toEqual({ page: 'notFound' });
+  });
+  it('parses the ledger route, with or without an address', () => {
+    const a = 'bitcoincash:qz8l22vpcx037klsqha3jzqq8lsnx4jkry9ru9e4pd';
+    expect(parseRoute('#/ledger')).toEqual({ page: 'ledger' });
+    expect(parseRoute(ledgerHash(a))).toEqual({ page: 'ledger', addr: a });
+    expect(ledgerHash(a)).toBe(`#/ledger?addr=${encodeURIComponent(a)}`);
+    expect(parseRoute('#/ledger?addr=')).toEqual({ page: 'ledger' });
+    expect(parseRoute('#/ledger/x')).toEqual({ page: 'notFound' });
   });
   it('builds absolute share links from the current URL', () => {
     expect(absoluteLink('https://paylink.pages.dev/#/old', payHash('x'))).toBe('https://paylink.pages.dev/#/pay/x');

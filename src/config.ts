@@ -28,5 +28,6 @@ export const DAPP_NAME = 'BCH Paylink';
  */
 export const DEMO_RECEIPT = {
   txid: 'd4d54134624c5fa42e72833d268559ec24ff57385a1d49727d5ee254d874184f',
+  payee: 'bitcoincash:qz8l22vpcx037klsqha3jzqq8lsnx4jkry9ru9e4pd',
   invoice: 'eyJ2IjoxLCJwYXllZSI6ImJpdGNvaW5jYXNoOnF6OGwyMnZwY3gwMzdrbHNxaGEzanpxcThsc254NGprcnk5cnU5ZTRwZCIsInNhdHMiOjEwMDAwLCJtZW1vIjoiVGVzdCIsImN1cnJlbmN5IjoiQkNIIn0',
 } as const;

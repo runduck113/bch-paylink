@@ -62,3 +62,10 @@ export async function broadcast(hex: string): Promise<string> {
 }
 
 export const fetchRawTx = (txid: string) => getProvider().getRawTransaction(txid);
+
+/** Electrum history of a script hash (raw answer; `readHistory` in lib/ledger checks it). */
+export const fetchHistory = (scriptHash: string): Promise<unknown> =>
+  getProvider().performRequest('blockchain.scripthash.get_history', scriptHash);
+
+/** A transaction in verbose form (hex plus block time) where the server supports it (`readVerboseTx` reads both). */
+export const fetchTxVerbose = (txid: string): Promise<unknown> => getProvider().performRequest('blockchain.transaction.get', txid, true);
