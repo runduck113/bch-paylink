@@ -77,8 +77,9 @@ function PayInvoice({ invoice, encoded, counter }: { invoice: Invoice; encoded: 
     <h1>This invoice can’t be paid</h1>
   ) : counter ? (
     <>
-      <h1>Printed. Scan to pay.</h1>
-      <p className="lede">The buyer scans the code on the slip with their BCH wallet, checks the amount and pays. They keep an NFT receipt.</p>
+      <h1>Ready to pay</h1>
+      <p className="lede">Hold this screen up to the buyer. They scan the code with their BCH wallet. Or send them the link below.</p>
+      <p className="lede">They check the amount in their wallet, pay, and keep an NFT receipt.</p>
     </>
   ) : (
     <>
@@ -263,7 +264,18 @@ function PayFlow(props: { invoice: Invoice; onPaid: (p: { txid: string; category
         ) : wc.state === 'connecting' ? (
           <div className="step-body">
             <h3 className="pair-head" ref={pairHeadRef} tabIndex={-1}>Scan with your BCH wallet</h3>
-            <p>Paytaca or another WizardConnect wallet. Wallet on this phone? Open it instead. Scan not working? Copy the connect link and paste it in Paytaca under Apps, WizardConnect.</p>
+            <div className="pair-hints">
+              <p>Paytaca or any WizardConnect wallet.</p>
+              <p>Wallet on this device? Tap Open wallet app.</p>
+              <p>Scan not working? Copy the connect link, then in Paytaca open Apps → WizardConnect and paste it.</p>
+            </div>
+            {autoConnect && (
+              <p className="pair-total">
+                <span className="pair-total-memo" title={invoice.memo || undefined}>{invoice.memo || 'Payment'}</span>
+                <span className="sr-only">, total </span>
+                <span className="pair-total-amount">{formatSatsAsBch(invoice.sats)} BCH</span>
+              </p>
+            )}
             {wc.qrUri && (
               <div className="pair-qr">
                 <AlphanumericQRCode value={wc.qrUri} size={256} quietZone={20} foreground="#000000" background="#ffffff" />
@@ -272,7 +284,7 @@ function PayFlow(props: { invoice: Invoice; onPaid: (p: { txid: string; category
             <div className="row">
               {wc.uri && <a className="btn btn-primary" href={wc.uri}>Open wallet app</a>}
               {wc.uri && <CopyButton text={wc.uri} label="Copy connect link" />}
-              <button type="button" className="text-button" onClick={() => void wc.disconnect()}>Cancel</button>
+              <button type="button" className="text-button" onClick={() => void wc.disconnect()}>Cancel connection</button>
             </div>
           </div>
         ) : wc.state === 'reconnecting' ? (

@@ -384,6 +384,21 @@ h1 {
 .step-body p { margin: 0; }
 .step-body > .btn-wide { justify-self: stretch; }
 .pair-head { margin: 0; font: 400 20px/1.15 var(--serif); outline: none; scroll-margin-top: 12px; }
+.pair-hints { display: grid; gap: 4px; font-size: 13px; line-height: 1.5; color: var(--ink-soft); }
+/* Counter mode: the total sits right above the wallet QR, so the buyer sees both after the scroll. */
+.pair-total {
+  justify-self: stretch;
+  contain: inline-size; /* a long memo is cut with an ellipsis, it must not widen the slip */
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 7px 0;
+  border-top: 1.5px solid var(--ink);
+  border-bottom: 1px dashed var(--paper-line);
+}
+.pair-total-memo { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--ink-soft); }
+.pair-total-amount { flex: none; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pair-qr { justify-self: center; line-height: 0; max-width: 100%; }
 /* The library caps max-width at size and forgets the quiet zone, which squashes the code. Keep it square. */
 .pair-qr canvas { max-width: 100% !important; height: auto !important; aspect-ratio: 1; image-rendering: pixelated; }
