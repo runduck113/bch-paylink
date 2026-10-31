@@ -1,7 +1,7 @@
 import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { parseRoute } from './lib/routes';
 import { Banner, DeadEnd, ErrorBox } from './components/ui';
-import CreatePage from './pages/CreatePage';
+import CreatePage, { COUNTER_FLAG } from './pages/CreatePage';
 
 // Wallet and Electrum code is heavy; load it only on the pages that need it.
 const PayPage = lazy(() => import('./pages/PayPage'));
@@ -38,13 +38,15 @@ export default function App() {
   }, []);
 
   const route = parseRoute(hash);
+  // "?counter" after the pay route: the seller just printed this invoice at the counter, so the wallet QR shows at once.
+  const counter = new URLSearchParams(hash.split('?')[1] ?? '').has(COUNTER_FLAG);
   return (
     <>
       <Banner />
       <ErrorBoundary key={hash}>
         <Suspense fallback={<main className="counter counter-loading"><p className="working" role="status">Loading</p></main>}>
           {route.page === 'create' && <CreatePage />}
-          {route.page === 'pay' && <PayPage key={route.encoded} encoded={route.encoded} />}
+          {route.page === 'pay' && <PayPage key={route.encoded} encoded={route.encoded} counter={counter} />}
           {route.page === 'receipt' && <ReceiptPage key={route.txid} txid={route.txid} encoded={route.encoded} />}
           {route.page === 'notFound' && (
             <DeadEnd title="Nothing printed here">

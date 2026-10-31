@@ -301,6 +301,8 @@ h1 {
 }
 .link-field:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .paper-section > .line-label { margin-bottom: -8px; }
+.paper-h3 { margin: 0; font: 400 18px/1.2 var(--serif); text-align: center; }
+.paper-again { margin: 18px 0 0; text-align: center; }
 
 .address { font-size: 13.5px; overflow-wrap: anywhere; word-break: break-all; }
 .addr-prefix { color: var(--ink-soft); }
@@ -381,6 +383,7 @@ h1 {
 .paper-section > .step-body { margin: 0; }
 .step-body p { margin: 0; }
 .step-body > .btn-wide { justify-self: stretch; }
+.pair-head { margin: 0; font: 400 20px/1.15 var(--serif); outline: none; scroll-margin-top: 12px; }
 .pair-qr { justify-self: center; line-height: 0; max-width: 100%; }
 /* The library caps max-width at size and forgets the quiet zone, which squashes the code. Keep it square. */
 .pair-qr canvas { max-width: 100% !important; height: auto !important; aspect-ratio: 1; image-rendering: pixelated; }

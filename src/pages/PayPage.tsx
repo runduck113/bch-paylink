@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useId, useMemo, useRef, useState } from 'react';
 import { AlphanumericQRCode, useWizardConnect } from '@wizardconnect/react';
 import { DAPP_NAME, EXPLORER_TX_URL, NETWORK, WALLET_ADDRESS_SCAN_COUNT } from '../config';
 import { decodeInvoice, validateInvoice, type Invoice } from '../lib/invoice';
 import { invoiceCommitment } from '../lib/receipt';
 import { formatSats, formatSatsAsBch } from '../lib/amount';
-import { receiptHash } from '../lib/routes';
+import { absoluteLink, payHash, receiptHash } from '../lib/routes';
 import { Address, CheckIcon, CopyButton, Counter, DeadEnd, ErrorBox, InvoiceLines, NftStub, PaperHead, Perforation, Slip } from '../components/ui';
 import { loadWallet, nextStep, signAndBroadcast, type Next, type WalletSnapshot } from '../wallet/payment';
 import { broadcast, BroadcastRejectedError, BroadcastUnknownError } from '../wallet/electrum';
@@ -40,7 +40,8 @@ type Phase =
   | { k: 'paid'; txid: string; category: string }
   | { k: 'error'; message: string };
 
-export default function PayPage({ encoded }: { encoded: string }) {
+/** `counter`: the seller just printed this invoice at the counter. The wallet QR shows at once, the link sits below. */
+export default function PayPage({ encoded, counter = false }: { encoded: string; counter?: boolean }) {
   const decoded = useMemo(() => {
     try {
       return { invoice: decodeInvoice(encoded) };
@@ -59,10 +60,10 @@ export default function PayPage({ encoded }: { encoded: string }) {
       </DeadEnd>
     );
   }
-  return <PayInvoice invoice={decoded.invoice} encoded={encoded} />;
+  return <PayInvoice invoice={decoded.invoice} encoded={encoded} counter={counter} />;
 }
 
-function PayInvoice({ invoice, encoded }: { invoice: Invoice; encoded: string }) {
+function PayInvoice({ invoice, encoded, counter }: { invoice: Invoice; encoded: string; counter: boolean }) {
   const problems = validateInvoice(invoice, NETWORK);
   const [paid, setPaidState] = useState<{ txid: string; category: string } | null>(null);
   const [earlier, setEarlier] = useState(() => readPaid(invoice));
@@ -74,6 +75,11 @@ function PayInvoice({ invoice, encoded }: { invoice: Invoice; encoded: string })
     <h1>Paid. Thank you.</h1>
   ) : problems.length > 0 ? (
     <h1>This invoice can’t be paid</h1>
+  ) : counter ? (
+    <>
+      <h1>Printed. Scan to pay.</h1>
+      <p className="lede">The buyer scans the code on the slip with their BCH wallet, checks the amount and pays. They keep an NFT receipt.</p>
+    </>
   ) : (
     <>
       <h1>Pay this invoice</h1>
@@ -104,17 +110,61 @@ function PayInvoice({ invoice, encoded }: { invoice: Invoice; encoded: string })
               <button type="button" className="text-button" onClick={() => setEarlier(null)}>Pay it again anyway</button>
             </div>
           ) : (
-            <PayFlow invoice={invoice} onPaid={setPaid} />
+            <PayFlow invoice={invoice} onPaid={setPaid} autoConnect={counter} />
           )}
         </section>
+        {counter && !paid && problems.length === 0 && <ShareLink link={absoluteLink(window.location.href, payHash(encoded))} />}
+        {counter && (
+          <p className="paper-again">
+            <a className="text-button" href="#/">Print another invoice</a>
+          </p>
+        )}
       </Slip>
     </Counter>
   );
 }
 
-function PayFlow({ invoice, onPaid }: { invoice: Invoice; onPaid: (p: { txid: string; category: string }) => void }) {
+/** The shareable https link, for a buyer who isn't at the counter. Secondary: wallets can't scan it. */
+export function ShareLink({ link }: { link: string }) {
+  const id = useId();
+  return (
+    <section className="paper-section share-link" aria-labelledby={`${id}-head`}>
+      <Perforation />
+      <h2 className="paper-h3" id={`${id}-head`}>Or send the buyer this link</h2>
+      <label className="sr-only" htmlFor={`${id}-link`}>Payment link</label>
+      <input id={`${id}-link`} className="link-field" readOnly value={link} onFocus={(e) => e.currentTarget.select()} />
+      <div className="row">
+        <CopyButton text={link} />
+      </div>
+    </section>
+  );
+}
+
+function PayFlow(props: { invoice: Invoice; onPaid: (p: { txid: string; category: string }) => void; autoConnect: boolean }) {
+  const { invoice, onPaid, autoConnect } = props;
   const dappIcon = useMemo(() => new URL('icon.svg', document.baseURI).href, []);
-  const wc = useWizardConnect({ dappName: DAPP_NAME, dappIcon });
+  // Counter mode: every slip is a new buyer on the seller's device, so don't reconnect (or keep) the last buyer's
+  // wallet session. With persistSession off the hook skips its own auto-reconnect, so connect() below is the only relay.
+  const wc = useWizardConnect({ dappName: DAPP_NAME, dappIcon, persistSession: !autoConnect });
+
+  // Counter mode: start pairing on mount so the wallet QR is on the slip without a click. Mount only, so Cancel
+  // stays cancelled.
+  const startPairing = useEffectEvent(() => {
+    if (wc.state === 'idle') wc.connect();
+  });
+  useEffect(() => {
+    if (autoConnect) startPairing();
+  }, [autoConnect]);
+
+  // Counter mode: once the wallet QR is drawn, bring it on screen (it sits below the invoice) and move focus to it.
+  const pairHeadRef = useRef<HTMLHeadingElement>(null);
+  const shownPairing = useRef(false);
+  useEffect(() => {
+    if (!autoConnect || !wc.qrUri || shownPairing.current || !pairHeadRef.current) return;
+    shownPairing.current = true;
+    pairHeadRef.current.scrollIntoView({ block: 'start' });
+    pairHeadRef.current.focus({ preventScroll: true });
+  }, [autoConnect, wc.qrUri]);
   const [phase, setPhaseState] = useState<Phase>({ k: 'idle' });
   const phaseRef = useRef<Phase>(phase);
   const setPhase = useCallback((p: Phase) => {
@@ -212,7 +262,8 @@ function PayFlow({ invoice, onPaid }: { invoice: Invoice; onPaid: (p: { txid: st
           </p>
         ) : wc.state === 'connecting' ? (
           <div className="step-body">
-            <p>Scan this with Paytaca or another WizardConnect wallet. Wallet on this phone? Open it instead. Scan not working? Copy the connect link and paste it in Paytaca under Apps, WizardConnect.</p>
+            <h3 className="pair-head" ref={pairHeadRef} tabIndex={-1}>Scan with your BCH wallet</h3>
+            <p>Paytaca or another WizardConnect wallet. Wallet on this phone? Open it instead. Scan not working? Copy the connect link and paste it in Paytaca under Apps, WizardConnect.</p>
             {wc.qrUri && (
               <div className="pair-qr">
                 <AlphanumericQRCode value={wc.qrUri} size={256} quietZone={20} foreground="#000000" background="#ffffff" />
