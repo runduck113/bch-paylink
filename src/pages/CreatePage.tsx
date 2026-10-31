@@ -158,10 +158,11 @@ export default function CreatePage() {
         {made && (
           <section className="paper-section tear-in" aria-labelledby={`${id}-link-head`}>
             <Perforation />
-            <h2 className="paper-h2" id={`${id}-link-head`} ref={linkHeadRef} tabIndex={-1}>Scan to pay</h2>
+            <h2 className="paper-h2" id={`${id}-link-head`} ref={linkHeadRef} tabIndex={-1}>Send this to the buyer</h2>
             <div className="paper-qr">
               <QrCode value={made.link} label="QR code of the payment link" />
             </div>
+            <p className="paper-note">Scan with the phone camera, not the wallet. It opens the pay page, where the wallet scans its own code.</p>
             <label className="line-label" htmlFor={`${id}-link`}>Payment link</label>
             <input id={`${id}-link`} className="link-field" readOnly value={made.link} onFocus={(e) => e.currentTarget.select()} />
             <div className="row">
