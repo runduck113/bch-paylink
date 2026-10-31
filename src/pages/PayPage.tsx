@@ -5,7 +5,7 @@ import { decodeInvoice, validateInvoice, type Invoice } from '../lib/invoice';
 import { invoiceCommitment } from '../lib/receipt';
 import { formatSats, formatSatsAsBch } from '../lib/amount';
 import { receiptHash } from '../lib/routes';
-import { Address, CheckIcon, ErrorBox, ReceiptPaper } from '../components/ui';
+import { Address, CheckIcon, Counter, DeadEnd, ErrorBox, InvoiceLines, NftStub, PAPER, PaperHead, Perforation, Slip } from '../components/ui';
 import { loadWallet, nextStep, signAndBroadcast, type Next, type WalletSnapshot } from '../wallet/payment';
 import { broadcast, BroadcastRejectedError, BroadcastUnknownError } from '../wallet/electrum';
 
@@ -51,17 +51,12 @@ export default function PayPage({ encoded }: { encoded: string }) {
 
   if ('error' in decoded) {
     return (
-      <main className="sheet sheet-narrow">
-        <div className="sheet-head">
-          <h1>This link doesn’t open an invoice</h1>
-        </div>
-        <div className="sheet-flow">
-          <ErrorBox title="The link could not be read">
-            <p>{decoded.error}. Ask the sender to copy the whole link again.</p>
-          </ErrorBox>
-          <a className="btn btn-quiet" href="#/">Make your own invoice</a>
-        </div>
-      </main>
+      <DeadEnd title="This link doesn’t open an invoice">
+        <ErrorBox title="The link could not be read">
+          <p>{decoded.error}. Ask the sender to copy the whole link again.</p>
+        </ErrorBox>
+        <a className="btn btn-secondary" href="#/">Make your own invoice</a>
+      </DeadEnd>
     );
   }
   return <PayInvoice invoice={decoded.invoice} encoded={encoded} />;
@@ -75,43 +70,45 @@ function PayInvoice({ invoice, encoded }: { invoice: Invoice; encoded: string })
     rememberPaid(invoice, p.txid);
     setPaidState(p);
   };
+  const note = paid ? (
+    <h1>Paid. Thank you.</h1>
+  ) : problems.length > 0 ? (
+    <h1>This invoice can’t be paid</h1>
+  ) : (
+    <>
+      <h1>Pay this invoice</h1>
+      <p className="lede">Check the amount and the address, then pay from your own wallet. You keep a receipt as an NFT.</p>
+    </>
+  );
   return (
-    <main className="sheet">
-      <div className="sheet-head">
-        <h1>{paid ? 'Paid. Thank you.' : 'Pay this invoice'}</h1>
-        {!paid && <p className="lede">Check the amount and the address, then pay from your own wallet. You keep a receipt as an NFT.</p>}
-      </div>
-      <div className="sheet-paper">
-        <ReceiptPaper
-          invoice={invoice}
-          stamp={paid ? 'paid' : undefined}
-          stub={paid ? { commitment: invoiceCommitment(invoice), category: paid.category, txid: paid.txid } : undefined}
-        />
-      </div>
-      <div className="sheet-flow">
-        {problems.length > 0 ? (
-          <ErrorBox title="This invoice can’t be paid">
-            <ul>{problems.map((p) => <li key={p}>{p}</li>)}</ul>
-            <p>Nothing was sent. Ask the sender for a corrected link.</p>
-          </ErrorBox>
-        ) : paid ? (
-          <Paid txid={paid.txid} encoded={encoded} />
-        ) : earlier ? (
-          <div className="step-body">
-            <ErrorBox title="You may have paid this invoice already">
-              <p>This browser sent (or tried to send) a payment for it earlier. Check that transaction before paying again.</p>
-              <p className="mono-small">{earlier}</p>
+    <Counter note={note} aside={paid ? <NftStub stub={{ commitment: invoiceCommitment(invoice), category: paid.category }} /> : undefined}>
+      <Slip label="Invoice" stamp={paid ? 'paid' : problems.length > 0 ? 'void' : undefined}>
+        <PaperHead kind="Invoice" />
+        <InvoiceLines invoice={invoice} />
+        <section className="paper-section" aria-label="Payment">
+          <Perforation />
+          {problems.length > 0 ? (
+            <ErrorBox title="This invoice can’t be paid">
+              <ul>{problems.map((p) => <li key={p}>{p}</li>)}</ul>
+              <p>Nothing was sent. Ask the sender for a corrected link.</p>
             </ErrorBox>
-            <div className="row">
-              <a className="btn btn-primary" href={receiptHash(earlier, encoded)}>Check that transaction</a>
+          ) : paid ? (
+            <Paid txid={paid.txid} encoded={encoded} />
+          ) : earlier ? (
+            <div className="step-body">
+              <ErrorBox title="You may have paid this invoice already">
+                <p>This browser sent (or tried to send) a payment for it earlier. Check that transaction before paying again.</p>
+                <p className="mono-small">{earlier}</p>
+              </ErrorBox>
+              <a className="btn btn-primary btn-wide" href={receiptHash(earlier, encoded)}>Check that transaction</a>
               <button type="button" className="text-button" onClick={() => setEarlier(null)}>Pay it again anyway</button>
             </div>
-          </div>
-        ) : (
-          <PayFlow invoice={invoice} onPaid={setPaid} />
-        )}
-      </div>
-    </main>
+          ) : (
+            <PayFlow invoice={invoice} onPaid={setPaid} />
+          )}
+        </section>
+      </Slip>
+    </Counter>
   );
 }
 
@@ -218,7 +215,7 @@ function PayFlow({ invoice, onPaid }: { invoice: Invoice; onPaid: (p: { txid: st
             <p>Scan this with Paytaca or another WizardConnect wallet. Wallet on this phone? Open it instead.</p>
             {wc.qrUri && (
               <div className="pair-qr">
-                <AlphanumericQRCode value={wc.qrUri} size={196} foreground="#16150f" background="#ffffff" />
+                <AlphanumericQRCode value={wc.qrUri} size={196} foreground="#16150f" background={PAPER} />
               </div>
             )}
             <div className="row">

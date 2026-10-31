@@ -1,6 +1,6 @@
 import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { parseRoute } from './lib/routes';
-import { Banner } from './components/ui';
+import { Banner, DeadEnd, ErrorBox } from './components/ui';
 import CreatePage from './pages/CreatePage';
 
 // Wallet and Electrum code is heavy; load it only on the pages that need it.
@@ -16,15 +16,12 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   render() {
     if (!this.state.error) return this.props.children;
     return (
-      <main className="sheet sheet-narrow">
-        <div className="sheet-head">
-          <h1>Something on this page broke</h1>
-        </div>
-        <div className="sheet-flow">
+      <DeadEnd title="Something on this page broke">
+        <ErrorBox title="The page stopped">
           <p>{this.state.error.message}</p>
-          <a className="btn btn-quiet" href="#/" onClick={() => this.setState({ error: null })}>Start over</a>
-        </div>
-      </main>
+        </ErrorBox>
+        <a className="btn btn-secondary" href="#/" onClick={() => this.setState({ error: null })}>Start over</a>
+      </DeadEnd>
     );
   }
 }
@@ -45,24 +42,21 @@ export default function App() {
     <>
       <Banner />
       <ErrorBoundary key={hash}>
-        <Suspense fallback={<main className="sheet sheet-narrow"><p className="working">Loading…</p></main>}>
+        <Suspense fallback={<main className="counter counter-loading"><p className="working" role="status">Loading</p></main>}>
           {route.page === 'create' && <CreatePage />}
           {route.page === 'pay' && <PayPage key={route.encoded} encoded={route.encoded} />}
           {route.page === 'receipt' && <ReceiptPage key={route.txid} txid={route.txid} encoded={route.encoded} />}
           {route.page === 'notFound' && (
-            <main className="sheet sheet-narrow">
-              <div className="sheet-head">
-                <h1>Nothing printed here</h1>
-              </div>
-              <div className="sheet-flow">
-                <a className="btn btn-quiet" href="#/">Print an invoice</a>
-              </div>
-            </main>
+            <DeadEnd title="Nothing printed here">
+              <p>This address doesn’t match a page.</p>
+              <a className="btn btn-secondary" href="#/">Print an invoice</a>
+            </DeadEnd>
           )}
         </Suspense>
       </ErrorBoundary>
       <footer className="footer">
-        <p>Your wallet signs every payment. This page is static: it never holds keys or money. Built for BCH BLAZE 2026.</p>
+        <p>Your wallet signs every payment. This page is static and never holds keys or money.</p>
+        <p>Built for BCH BLAZE 2026</p>
       </footer>
     </>
   );
