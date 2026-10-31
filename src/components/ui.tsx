@@ -98,7 +98,7 @@ export function CopyButton({
 export const PAPER = '#f6f5ef';
 
 /** QR code as inline SVG (byte mode, so lowercase URLs work). */
-export function QrCode({ value, size = 184, label }: { value: string; size?: number; label: string }) {
+export function QrCode({ value, size = 240, label }: { value: string; size?: number; label: string }) {
   const { path, n } = useMemo(() => {
     const qr = qrcode(0, 'M');
     qr.addData(value);
@@ -109,9 +109,9 @@ export function QrCode({ value, size = 184, label }: { value: string; size?: num
     return { path: d, n: count };
   }, [value]);
   return (
-    <svg className="qr" role="img" aria-label={label} width={size} height={size} viewBox={`-2 -2 ${n + 4} ${n + 4}`} shapeRendering="crispEdges">
-      <rect x={-2} y={-2} width={n + 4} height={n + 4} fill={PAPER} />
-      <path d={path} fill="#16150f" />
+    <svg className="qr" role="img" aria-label={label} width={size} height={size} viewBox={`-4 -4 ${n + 8} ${n + 8}`} shapeRendering="crispEdges">
+      <rect x={-4} y={-4} width={n + 8} height={n + 8} fill="#ffffff" />
+      <path d={path} fill="#000000" />
     </svg>
   );
 }

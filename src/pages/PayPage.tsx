@@ -5,7 +5,7 @@ import { decodeInvoice, validateInvoice, type Invoice } from '../lib/invoice';
 import { invoiceCommitment } from '../lib/receipt';
 import { formatSats, formatSatsAsBch } from '../lib/amount';
 import { receiptHash } from '../lib/routes';
-import { Address, CheckIcon, Counter, DeadEnd, ErrorBox, InvoiceLines, NftStub, PAPER, PaperHead, Perforation, Slip } from '../components/ui';
+import { Address, CheckIcon, Counter, DeadEnd, ErrorBox, InvoiceLines, NftStub, PaperHead, Perforation, Slip } from '../components/ui';
 import { loadWallet, nextStep, signAndBroadcast, type Next, type WalletSnapshot } from '../wallet/payment';
 import { broadcast, BroadcastRejectedError, BroadcastUnknownError } from '../wallet/electrum';
 
@@ -215,7 +215,7 @@ function PayFlow({ invoice, onPaid }: { invoice: Invoice; onPaid: (p: { txid: st
             <p>Scan this with Paytaca or another WizardConnect wallet. Wallet on this phone? Open it instead.</p>
             {wc.qrUri && (
               <div className="pair-qr">
-                <AlphanumericQRCode value={wc.qrUri} size={196} foreground="#16150f" background={PAPER} />
+                <AlphanumericQRCode value={wc.qrUri} size={256} quietZone={20} foreground="#000000" background="#ffffff" />
               </div>
             )}
             <div className="row">

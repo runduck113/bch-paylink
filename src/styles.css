@@ -380,7 +380,10 @@ h1 {
 .paper-section > .step-body { margin: 0; }
 .step-body p { margin: 0; }
 .step-body > .btn-wide { justify-self: stretch; }
-.pair-qr { justify-self: center; padding: 6px; line-height: 0; }
+.pair-qr { justify-self: center; line-height: 0; max-width: 100%; }
+/* The library caps max-width at size and forgets the quiet zone, which squashes the code. Keep it square. */
+.pair-qr canvas { max-width: 100% !important; height: auto !important; aspect-ratio: 1; image-rendering: pixelated; }
+.qr { max-width: 100%; height: auto; }
 .icon { width: 16px; height: 16px; flex: none; }
 .step-mark .icon { width: 14px; height: 14px; }
 
