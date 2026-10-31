@@ -5,7 +5,7 @@ import { decodeInvoice, validateInvoice, type Invoice } from '../lib/invoice';
 import { invoiceCommitment } from '../lib/receipt';
 import { formatSats, formatSatsAsBch } from '../lib/amount';
 import { receiptHash } from '../lib/routes';
-import { Address, CheckIcon, Counter, DeadEnd, ErrorBox, InvoiceLines, NftStub, PaperHead, Perforation, Slip } from '../components/ui';
+import { Address, CheckIcon, CopyButton, Counter, DeadEnd, ErrorBox, InvoiceLines, NftStub, PaperHead, Perforation, Slip } from '../components/ui';
 import { loadWallet, nextStep, signAndBroadcast, type Next, type WalletSnapshot } from '../wallet/payment';
 import { broadcast, BroadcastRejectedError, BroadcastUnknownError } from '../wallet/electrum';
 
@@ -212,7 +212,7 @@ function PayFlow({ invoice, onPaid }: { invoice: Invoice; onPaid: (p: { txid: st
           </p>
         ) : wc.state === 'connecting' ? (
           <div className="step-body">
-            <p>Scan this with Paytaca or another WizardConnect wallet. Wallet on this phone? Open it instead.</p>
+            <p>Scan this with Paytaca or another WizardConnect wallet. Wallet on this phone? Open it instead. Scan not working? Copy the connect link and paste it in Paytaca under Apps, WizardConnect.</p>
             {wc.qrUri && (
               <div className="pair-qr">
                 <AlphanumericQRCode value={wc.qrUri} size={256} quietZone={20} foreground="#000000" background="#ffffff" />
@@ -220,6 +220,7 @@ function PayFlow({ invoice, onPaid }: { invoice: Invoice; onPaid: (p: { txid: st
             )}
             <div className="row">
               {wc.uri && <a className="btn btn-primary" href={wc.uri}>Open wallet app</a>}
+              {wc.uri && <CopyButton text={wc.uri} label="Copy connect link" />}
               <button type="button" className="text-button" onClick={() => void wc.disconnect()}>Cancel</button>
             </div>
           </div>
