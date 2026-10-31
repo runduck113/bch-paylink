@@ -1,9 +1,9 @@
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { NETWORK } from '../config';
+import { DEMO_RECEIPT, NETWORK } from '../config';
 import { encodeInvoice, validateInvoice, MAX_MEMO_CHARS, MIN_INVOICE_SATS, type Invoice } from '../lib/invoice';
 import { cashAddrPrefix } from '../lib/network';
 import { formatSats, formatSatsAsBch, parseBchToSats } from '../lib/amount';
-import { payHash } from '../lib/routes';
+import { payHash, receiptHash } from '../lib/routes';
 import { Counter, ErrorBox, PaperHead, Slip } from '../components/ui';
 
 /** Query flag on the pay route: the invoice was just printed at the counter, so the pay page starts the wallet pairing. */
@@ -69,7 +69,12 @@ export default function CreatePage() {
     <>
       <h1>Print a Bitcoin Cash invoice</h1>
       <p className="lede">Fill in the slip and print it. The buyer scans it with their BCH wallet and pays from it, or you send them the link. They get an NFT receipt that names this exact invoice.</p>
-      <p className="lede lede-quiet">No account, no server. The whole invoice lives in the link.</p>
+      <p className="lede lede-quiet">No account, no backend. The whole invoice lives in the link.</p>
+      {NETWORK === 'mainnet' && (
+        <p className="lede">
+          No wallet at hand? <a href={receiptHash(DEMO_RECEIPT.txid, DEMO_RECEIPT.invoice)}>See a real paid receipt</a>, checked live against mainnet.
+        </p>
+      )}
     </>
   );
 

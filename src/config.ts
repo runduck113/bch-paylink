@@ -21,3 +21,12 @@ export const FEE_RATE_SAT_PER_BYTE = 1;
 export const WALLET_ADDRESS_SCAN_COUNT = 20;
 
 export const DAPP_NAME = 'BCH Paylink';
+
+/**
+ * The first real mainnet payment (Paytaca over WizardConnect, 10,000 sats + NFT receipt) and the invoice it paid.
+ * The create page links its receipt so anyone without a wallet can see a verified payment, checked live from the chain.
+ */
+export const DEMO_RECEIPT = {
+  txid: 'd4d54134624c5fa42e72833d268559ec24ff57385a1d49727d5ee254d874184f',
+  invoice: 'eyJ2IjoxLCJwYXllZSI6ImJpdGNvaW5jYXNoOnF6OGwyMnZwY3gwMzdrbHNxaGEzanpxcThsc254NGprcnk5cnU5ZTRwZCIsInNhdHMiOjEwMDAwLCJtZW1vIjoiVGVzdCIsImN1cnJlbmN5IjoiQkNIIn0',
+} as const;

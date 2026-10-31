@@ -3,7 +3,7 @@
 Goal: a merchant/freelancer makes a payment link for an invoice; the buyer opens it, pays in BCH (later PUSD) from their own wallet via WizardConnect (Paytaca), and the same transaction mints a CashTokens NFT receipt to the buyer. Judges understand it in 30 seconds and can pay a real mainnet invoice of a few thousand sats.
 
 ## Must (hackathon rules)
-- Static web app (Vite + React), deploy to Cloudflare Pages; judges click and use, no backend.
+- Static web app (Vite + React), deploy to GitHub Pages; judges click and use, no backend.
 - WizardConnect integration (@wizardconnect/react / dapp) for wallet connect + signing.
 - At least one real BCH mainnet transaction: the invoice payment.
 - Banner at top of homepage: slide link, repo link, project CashTokens address (placeholders until known).
