@@ -21,13 +21,57 @@ Bitcoin Cash invoices as links. The buyer pays from their own wallet, and the sa
 
 Paying yourself costs only the network fee (a few hundred sats) plus 711 sats that stay with you in the NFT output.
 
-## Who it’s for
+## Business case
 
-Freelancers and small shops that invoice in BCH and need to know which invoice a payment was for.
+**Who it's for.** Freelancers and small sellers who get paid in BCH remotely: by chat, email or a shop page, not at a counter. This is our assumption about the first users, not a measured market; we have no user numbers yet.
 
-**Why not just paste an address?** A bare address tells you that money arrived, not what it was for. Two customers paying the same amount on the same day look identical, and a memo in a chat message is not on chain. With a Paylink invoice, each payment carries an NFT whose commitment is a hash of that exact invoice. The seller gets an on-chain ledger that matches payments to invoices without a server, and the buyer keeps a proof of payment they can show later.
+**The pain.** A bare address tells the seller that money arrived, not what it was for. Two customers paying the same amount on the same day look identical, and a memo in a chat message is not on chain. The seller reconciles by hand, and the buyer has nothing to show later except a txid. With a Paylink invoice, each payment carries an NFT whose commitment is a hash of that exact invoice. The seller gets a ledger that matches payments to invoices without a backend, and the buyer keeps a proof of payment.
 
-**Business model (plans, not built).** The core stays free and static: invoices, payment, receipts, the ledger. Paid hosted extras could cover what a static page cannot: branded receipts and invoice pages, recurring invoices, and accounting export integrations (Xero, QuickBooks and similar) beyond the CSV the app already exports.
+**Why now.**
+- People already pay merchants in BCH, and the number is growing. Paytaca, a non-custodial BCH wallet and POS from the Philippines, went from about 80 merchants (BitPinas, Aug 2024) to over 122 in the Visayas (SunStar, Dec 2024) to more than 300 (NewsBytes, Mar 2026). Paytaca's own site lists 300+ merchant partners in 20+ countries and 50K+ wallets.
+- A major general processor stepped back. In Feb 2024 Coinbase Commerce dropped native Bitcoin and other UTXO coins, BCH included; paying with them now needs a Coinbase account (Cointelegraph).
+- The tools are new. CashTokens went live on mainnet on 15 May 2023, which is what makes an NFT receipt inside the payment transaction possible. WizardConnect lets a web page ask a wallet such as Paytaca to sign without the page holding keys.
+
+**Competitors.**
+
+| | Who holds the money | Account needed | Fee | Proof for the buyer |
+| --- | --- | --- | --- | --- |
+| BitPay | BitPay, then it settles to the merchant's bank | Merchant account | 2% + 25¢ per payment under $500k a month | Invoice in BitPay's system |
+| Coinbase Commerce | Native BCH dropped in Feb 2024 | Payer needs a Coinbase account | n/a | n/a |
+| Prompt.cash | Merchant's own wallet (non-custodial) | Merchant registers | Free tier; Standard listed at $20/month + $0.01 per transaction (first year currently free) | Record in Prompt.cash's dashboard |
+| Paytaca POS | Merchant's own wallet (non-custodial) | Paytaca wallet | Free to merchants | Wallet history |
+| BCH Paylink | Seller's own wallet (non-custodial) | None, for seller or buyer | Network fee only | NFT receipt on chain, checkable by anyone with the invoice link |
+
+What Paylink does that the others don't: no account on either side, no service of ours in the payment path (it is a static page), a receipt NFT that names the exact invoice and can be checked against the chain, and a ledger with CSV export built only from public chain data. What the others do that Paylink doesn't yet: Prompt.cash has a hosted merchant dashboard and a WordPress/WooCommerce plugin; Paytaca has a POS for in-person sales and a working merchant network. Paylink is meant to sit next to wallets like Paytaca and Selene, not replace them.
+
+**Sustainability without custody.** The free core stays a static, open-source page: invoices, payment, receipts, ledger. Money would come only from things a static page cannot do, and none of them touch funds:
+- An optional hosted merchant dashboard: invoice history across devices, reminders for unpaid invoices, branded invoice and receipt pages, recurring invoices, accounting exports beyond CSV. Prompt.cash's listed $20/month tier (first year currently free) shows that hosted non-custodial BCH tooling can be priced.
+- A receipt-verification API, so shops, marketplaces or accountants can ask "was invoice X paid?" without running an Electrum client.
+- White-label receipt minting for wallets and POS apps that want NFT receipts in their own payment flow.
+- BCH ecosystem funding for the open-source core, such as Flipstarter crowdfunding (Prompt.cash had raised 206 BCH toward a 390 BCH goal by March 2021).
+
+These are plans; none of them is built.
+
+**Go-to-market.**
+- BCH channels where builders and merchants already are: the BLAZE and BCH builder Telegram groups, r/btc, the Bitcoin Cash Podcast.
+- Wallet teams: a short integration note for Paytaca (WizardConnect) and Selene (WalletConnect) on how a pay link and receipt fit their flow.
+- Sellers directly: a "send a BCH invoice" guide for freelancers, shared in the communities where Paytaca already onboards merchants.
+
+**Next 90 days.**
+1. Days 1-30: a merchant view that rebuilds the invoice list from the seller's receipts on chain, so a second browser no longer starts empty. Test with a second wallet, e.g. Cashonize.
+2. Days 31-60: stablecoin invoices (ParyonUSD or another CashTokens stablecoin) so prices hold in fiat terms; a public receipt-check endpoint as a first version of the API.
+3. Days 61-90: run 10 real invoices with named sellers, write up what broke, then decide between a Flipstarter and charging for the hosted dashboard.
+
+**Sources** (read 2 Nov 2026):
+- BCH BLAZE 2026 judging criteria: https://dorahacks.io/hackathon/bchblaze2026/detail
+- Paytaca, about 80 merchants (Aug 2024): https://bitpinas.com/feature/paytaca-expansion-interview/
+- Paytaca, over 122 merchants in the Visayas (Dec 2024): https://www.sunstar.com.ph/tacloban/paytaca-partners-with-cebus-biggest-night-club-apex-super-club
+- Paytaca, more than 300 merchants (Mar 2026): https://newsbytes.ph/2026/03/26/leyte-based-crypto-wallet-firm-expands-network-pushes-use-controlled-model/
+- Paytaca's own figures: https://www.paytaca.com/
+- Coinbase Commerce drops native BTC and UTXO coins (Feb 2024): https://cointelegraph.com/news/coinbase-drops-bitcoin-payments-merchants-platform
+- BitPay fees (archived 7 Feb 2026): https://web.archive.org/web/20260207052153/https://bitpay.com/pricing/
+- Prompt.cash pricing: https://prompt.cash/ and its 2021 launch and Flipstarter: https://news.bitcoin.com/developers-launch-first-hosted-noncustodial-payment-processor-bitcoin-cash
+- CashTokens activation, 15 May 2023: https://upgradespecs.bitcoincashnode.org/2023-05-15-upgrade/
 
 ## How it works
 
