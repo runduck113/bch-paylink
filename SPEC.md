@@ -24,4 +24,4 @@ PUSD payments (stretch), escrow, accounts, storing keys, any custody of funds.
 
 ## Project addresses (owner's Paytaca wallet, public)
 - BCH: bitcoincash:qz8l22vpcx037klsqha3jzqq8lsnx4jkry9ru9e4pd
-- CashTokens (banner): bitcoincash:zz8l22vpcx037klsqha3jzqq8lsnx4jkryzf0mhn77
+- CashTokens (banner): bitcoincash:zrsxl7zfahsauljzdt06h3usep34fnjw3ukhmwhnd5

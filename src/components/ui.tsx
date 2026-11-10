@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import qrcode from 'qrcode-generator';
-import { NETWORK, GITHUB_URL, PROJECT_TOKEN_ADDRESS, SLIDES_URL } from '../config';
+import { NETWORK, GITHUB_URL, PRE_HACKATHON, PROJECT_TOKEN_ADDRESS, SLIDES_URL } from '../config';
 import type { Invoice } from '../lib/invoice';
 import { formatSats, formatSatsAsBch } from '../lib/amount';
 import { truncateMiddle } from './format';
 
-/** Contest banner: slides, repo and the project CashTokens address. A quiet strip above the counter. */
+/** Contest banner: slides, repo, the project CashTokens address and the pre-hackathon disclosure. A quiet strip above the counter. */
 export function Banner() {
   return (
     <header className="banner">
@@ -34,6 +34,14 @@ export function Banner() {
           <CopyButton text={PROJECT_TOKEN_ADDRESS} label="Copy CashTokens address" variant="icon" />
         </span>
       </nav>
+      <p className="banner-pre">
+        Pre-hackathon version (built {PRE_HACKATHON.built}):{' '}
+        <a href={PRE_HACKATHON.codeUrl} target="_blank" rel="noreferrer">old code</a>
+        {' · '}
+        <a href={PRE_HACKATHON.demoUrl} target="_blank" rel="noreferrer">old demo</a>
+        {' · '}
+        <a href={GITHUB_URL} target="_blank" rel="noreferrer">current code</a>
+      </p>
     </header>
   );
 }

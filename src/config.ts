@@ -3,8 +3,17 @@ import { resolveNetwork, type AppNetwork } from './lib/appNetwork';
 /** Hackathon banner links. Leave SLIDES_URL empty until the slides are public; the banner then shows "Slides (soon)". */
 export const SLIDES_URL: string = 'https://docs.google.com/presentation/d/1b6KO1aTGUeWA0oWCafc7ZTAp0i3hFmOKYymTJ6YXZTI/edit?usp=sharing';
 export const GITHUB_URL = 'https://github.com/runduck113/bch-paylink';
+/**
+ * Pre-existing project disclosure (contest rule): the version built before the hackathon, 30 Oct – 2 Nov 2026.
+ * Code is the `pre-blaze` tag (commit 6b7ac67); the demo is that commit's build, served from public/pre/.
+ */
+export const PRE_HACKATHON = {
+  built: '30 Oct – 2 Nov 2026',
+  codeUrl: 'https://github.com/runduck113/bch-paylink/tree/pre-blaze',
+  demoUrl: 'https://runduck113.github.io/bch-paylink/pre/',
+} as const;
 /** Project CashTokens address shown in the banner (owner's Paytaca wallet, public). */
-export const PROJECT_TOKEN_ADDRESS = 'bitcoincash:zz8l22vpcx037klsqha3jzqq8lsnx4jkryzf0mhn77';
+export const PROJECT_TOKEN_ADDRESS = 'bitcoincash:zrsxl7zfahsauljzdt06h3usep34fnjw3ukhmwhnd5';
 
 /** Set with VITE_NETWORK=mainnet|chipnet. Unset: chipnet in `vite dev`, mainnet in `vite build`. */
 export const NETWORK: AppNetwork = resolveNetwork(import.meta.env.VITE_NETWORK, import.meta.env.DEV);

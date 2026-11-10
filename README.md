@@ -6,7 +6,18 @@ Bitcoin Cash invoices as links. The buyer pays from their own wallet, and the sa
 - Verified mainnet payment, checked live in the app (no wallet needed): [open the receipt](https://runduck113.github.io/bch-paylink/#/receipt/d4d54134624c5fa42e72833d268559ec24ff57385a1d49727d5ee254d874184f?inv=eyJ2IjoxLCJwYXllZSI6ImJpdGNvaW5jYXNoOnF6OGwyMnZwY3gwMzdrbHNxaGEzanpxcThsc254NGprcnk5cnU5ZTRwZCIsInNhdHMiOjEwMDAwLCJtZW1vIjoiVGVzdCIsImN1cnJlbmN5IjoiQkNIIn0)
 - Same transaction on an explorer: [d4d54134…74184f on Blockchair](https://blockchair.com/bitcoin-cash/transaction/d4d54134624c5fa42e72833d268559ec24ff57385a1d49727d5ee254d874184f)
 - Slides: [BCH BLAZE 2026 deck](https://docs.google.com/presentation/d/1b6KO1aTGUeWA0oWCafc7ZTAp0i3hFmOKYymTJ6YXZTI/edit?usp=sharing)
-- Built for BCH BLAZE 2026, Mainnet Track. Project CashTokens address: `bitcoincash:zz8l22vpcx037klsqha3jzqq8lsnx4jkryzf0mhn77`
+- Built for BCH BLAZE 2026, Mainnet Track. Project CashTokens address: `bitcoincash:zrsxl7zfahsauljzdt06h3usep34fnjw3ukhmwhnd5`
+
+## Pre-existing project disclosure
+
+BCH Paylink was started before BCH BLAZE 2026. The version built from 30 Oct to 2 Nov 2026 (commit `6b7ac67`, tag `pre-blaze`) existed before the hackathon; anything after that tag is hackathon work.
+
+- Old code (before the hackathon): https://github.com/runduck113/bch-paylink/tree/pre-blaze
+- Old demo (that commit, built as-is): https://runduck113.github.io/bch-paylink/pre/
+- Current code: https://github.com/runduck113/bch-paylink
+- What changed since: https://github.com/runduck113/bch-paylink/compare/pre-blaze...master
+
+The old demo is a frozen build kept in `public/pre/`; it still shows the banner and CashTokens address it had then.
 
 | Seller fills in the slip | Buyer scans with their wallet | Anyone checks the receipt |
 | --- | --- | --- |

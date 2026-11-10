@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { PROJECT_TOKEN_ADDRESS, SLIDES_URL } from '../config';
+import { GITHUB_URL, PRE_HACKATHON, PROJECT_TOKEN_ADDRESS, SLIDES_URL } from '../config';
 import type { Invoice } from '../lib/invoice';
 import CreatePage from '../pages/CreatePage';
 import { ShareLink } from '../pages/PayPage';
@@ -13,9 +13,17 @@ describe('Banner (contest rule)', () => {
     expect(html).toContain('github.com/runduck113/bch-paylink');
   });
   it('shows the CashTokens address shortened, keeps the full one for screen readers and copying', () => {
-    expect(html).toContain('zz8l22vp…zf0mhn77');
+    expect(html).toContain('zrsxl7zf…khmwhnd5');
     expect(html).toContain(`class="sr-only">${PROJECT_TOKEN_ADDRESS}<`);
     expect(html).toContain('aria-label="Copy CashTokens address"');
+  });
+  it('discloses the pre-hackathon version: old code, old demo, current code', () => {
+    expect(PROJECT_TOKEN_ADDRESS).toBe('bitcoincash:zrsxl7zfahsauljzdt06h3usep34fnjw3ukhmwhnd5');
+    expect(html).toContain('Pre-hackathon version (built 30 Oct – 2 Nov 2026)');
+    expect(html).toContain(`href="${PRE_HACKATHON.codeUrl}"`);
+    expect(html).toContain('href="https://github.com/runduck113/bch-paylink/tree/pre-blaze"');
+    expect(html).toContain('href="https://runduck113.github.io/bch-paylink/pre/"');
+    expect(html).toContain(`href="${GITHUB_URL}" target="_blank" rel="noreferrer">current code<`);
   });
 });
 
